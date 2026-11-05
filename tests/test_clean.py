@@ -29,5 +29,6 @@ def test_label_passes():
     assert out["exclude_reason"].fillna("-").tolist() == [
         "-", "-", "-", "-", "ball out: after BALL LOST", "CLEARANCE", "ball out: after CLEARANCE", "-",
         "THEFT", "ball out: no From player", "-", "ball out: after SHOT", "-"]
+    assert out["set_piece_type"].fillna("-").tolist() == ["-", "-", "throw-in"] + ["-"] * 9 + ["goal kick"]
     assert out["is_set_piece"].tolist() == [False, False, True] + [False] * 9 + [True]
     assert out["is_header"].tolist()[3] and not out["is_header"].tolist()[2]

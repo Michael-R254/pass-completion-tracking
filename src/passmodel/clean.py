@@ -12,6 +12,11 @@ import pandas as pd
 EXCLUDE_TOKENS = ("THEFT", "FORCED", "CLEARANCE", "OFFSIDE", "END HALF", "WOODWORK", "HAND BALL", "REFEREE HIT")
 
 
+# SET PIECE subtype token -> set_piece_type (D2). Goal kicks are detected from the pass's own subtype.
+SET_PIECE_TYPES = {"CORNER KICK": "corner", "FREE KICK": "free kick", "THROW IN": "throw-in",
+                   "KICK OFF": "kick-off", "PENALTY": "penalty"}
+
+
 def _tokens(subtype: pd.Series) -> pd.Series:
     """'HEAD-INTERCEPTION' -> {'HEAD', 'INTERCEPTION'}; missing -> empty set."""
     return subtype.fillna("").map(lambda s: set(s.split("-")) - {""})
@@ -32,9 +37,9 @@ def label_passes(events: pd.DataFrame) -> pd.DataFrame:
       "ball out: after SHOT" / "after CLEARANCE" / "after tackle or THEFT"
       "ball out: after BALL LOST" -- the same loose ball already counted as a failed pass,
                                      so it must not be counted twice
-    Flags: is_cross, is_header, is_set_piece. A set piece is a separate SET PIECE row
-    by the same team immediately before the pass; goal kicks have no SET PIECE row,
-    so the GOAL KICK subtype also counts.
+    Flags: is_cross, is_header, and (decision D2) set_piece_type / is_set_piece:
+    corner, free kick, throw-in, kick-off, penalty (from the SET PIECE row directly
+    before the pass, same player) or goal kick (the pass's own subtype). NaN = open play.
 
     "Previous event" skips CARRY rows, which only game 3 records, so the rules mean
     the same thing in all three games.
@@ -44,7 +49,7 @@ def label_passes(events: pd.DataFrame) -> pd.DataFrame:
     bucket = ev["type"].map({"PASS": "completed", "BALL LOST": "failed", "BALL OUT": "failed"})
 
     seq = ev[ev["type"] != "CARRY"]
-    prev = seq.groupby("match_id")[["type", "subtype", "team"]].shift(1).reindex(ev.index)
+    prev = seq.groupby("match_id")[["type", "subtype", "team", "from_player"]].shift(1).reindex(ev.index)
     prev_tok = _tokens(prev["subtype"])
 
     token_reason = tok.map(lambda t: next((x for x in EXCLUDE_TOKENS if x in t), None))
@@ -65,8 +70,16 @@ def label_passes(events: pd.DataFrame) -> pd.DataFrame:
 
     ev["is_cross"] = tok.map(lambda t: "CROSS" in t)
     ev["is_header"] = tok.map(lambda t: "HEAD" in t)
-    after_set_piece = (prev["type"] == "SET PIECE") & (prev["team"] == ev["team"])
-    ev["is_set_piece"] = after_set_piece | tok.map(lambda t: "GOAL KICK" in t)
+
+    # D2: Metrica writes a set piece as its own SET PIECE row, then the restart pass as the
+    # next event by the same player (checked: 100% same player, 91.5% same frame).
+    # Goal kicks have no SET PIECE row; the pass itself carries the GOAL KICK subtype.
+    after_set_piece = (prev["type"] == "SET PIECE") & (prev["from_player"] == ev["from_player"])
+    sp_type = prev_tok.map(lambda t: next((v for k, v in SET_PIECE_TYPES.items() if k in t), None))
+    sp_type = sp_type.where(after_set_piece)
+    sp_type = sp_type.mask(tok.map(lambda t: "GOAL KICK" in t), "goal kick")
+    ev["set_piece_type"] = sp_type.where(bucket.notna())
+    ev["is_set_piece"] = ev["set_piece_type"].notna()
     return ev
 
 
@@ -81,3 +94,16 @@ def label_counts(labelled: pd.DataFrame) -> pd.DataFrame:
     t = pd.crosstab(row, p["match_id"], margins=True, margins_name="all")
     rate = t.loc["completed"] / (t.loc["completed"] + t.loc["failed"])
     return pd.concat([t, rate.round(3).to_frame("completion_rate").T])
+
+
+def set_piece_counts(labelled: pd.DataFrame) -> pd.DataFrame:
+    """Per game and overall: pass count and completion rate for open play and each set_piece_type (D2).
+
+    Written to results/d2_set_piece_counts.csv.
+    """
+    k = labelled[labelled["pass_bucket"].isin(["completed", "failed"])]
+    k = k.assign(completed=k["pass_bucket"].eq("completed"), kind=k["set_piece_type"].fillna("open play"))
+    k = pd.concat([k, k.assign(match_id="all")])
+    k = pd.concat([k, k[k["is_set_piece"]].assign(kind="all set pieces")])
+    g = k.groupby(["kind", "match_id"])["completed"].agg(n="size", completion_rate="mean")
+    return g.unstack("match_id").round(3)

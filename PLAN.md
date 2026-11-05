@@ -34,7 +34,7 @@ These are the four places where a quick version of this project would give misle
 - [ ] Compute velocities for **every frame** in one vectorised pass per match (grouped backward differences), stored alongside positions
 - [ ] Convert to metres (105 × 68 or the pitch size given in the metadata) and **flip coordinates so each team always attacks the same direction** in both halves
 - [x] Tabulate every event type and subtype; agree the **attempted pass** definition with the user (decision D1)
-- [ ] Decide on set pieces: exclude, or keep with a flag (decision D2)
+- [x] Decide on set pieces: exclude, or keep with a flag (decision D2)
 - [ ] Drop passes whose start frame has missing ball or player positions; log how many are dropped and why
 - [ ] Sanity plot: 3 random passes on a pitch, to check frames and coordinates line up
 - [ ] Output: `data/processed/passes.parquet` with one row per attempted pass and a `completed` label

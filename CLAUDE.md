@@ -95,6 +95,6 @@ The folders and empty module stubs already exist. Fill in the stubs; don't reorg
 | ID | Decision | Choice | Date |
 |----|----------|--------|------|
 | D1 | Attempted / failed pass definition | **Completed** = PASS. **Failed** = BALL LOST, plus BALL OUT (a player in possession puts the ball out) if it has a From player and the previous event isn't a SHOT, CLEARANCE, tackle/THEFT or BALL LOST (the last stops one loose ball counting twice). **Excluded** from all three types alike: subtypes with THEFT, FORCED, CLEARANCE, OFFSIDE, END HALF, WOODWORK, HAND BALL, REFEREE HIT. Flags `is_cross`, `is_header`, `is_set_piece`. Code: `clean.label_passes`; counts: `results/d1_label_counts.csv` (2,878 completed / 767 failed / 181 excluded, 79.0%) | 2026-11-05 |
-| D2 | Set pieces | _pending_ | |
+| D2 | Set pieces | Main model uses **open play only**. Set-piece passes stay in `passes.parquet` with `is_set_piece` and `set_piece_type` (corner / free kick / throw-in / goal kick / kick-off) for a later sensitivity check. A set-piece pass is the event right after a SET PIECE row by the same player (CARRY rows skipped); goal kicks come from the pass's own GOAL KICK subtype. 289 set-piece passes (7.9%, 81.0% completed); 3,356 open-play passes remain (78.8%). Counts: `results/d2_set_piece_counts.csv` | 2026-11-05 |
 | D3 | Intended target rule | _pending_ | |
 | D4 | Hyperparameter tuning | _pending_ | |
