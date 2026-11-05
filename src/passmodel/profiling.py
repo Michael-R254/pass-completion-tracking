@@ -1,1 +1,90 @@
-"""Timing and peak-memory logging per pipeline stage -> results/benchmarks.csv (PLAN.md step 0)."""
+"""Timing and peak-memory logging per pipeline stage -> results/benchmarks.csv (PLAN.md step 0).
+
+Why: the README's "Scaling" section must quote measured numbers, not guesses.
+Every pipeline stage is wrapped in ``@benchmark("stage name")`` and appends one
+row per call to ``results/benchmarks.csv``. Per-match rows let us project the
+cost of a 380-match season (time per match x 380).
+
+Memory is measured with the stdlib ``tracemalloc``: it counts allocations made
+through Python's allocator, which includes NumPy and pandas arrays. It does NOT
+see memory allocated inside Arrow's C++ pool (e.g. inside ``pyarrow.parquet``),
+so Parquet read/write peaks are a lower bound. Stated in the README.
+"""
+
+from __future__ import annotations
+
+import csv
+import functools
+import inspect
+import time
+import tracemalloc
+from datetime import datetime
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+BENCHMARK_CSV = REPO_ROOT / "results" / "benchmarks.csv"
+COLUMNS = ["timestamp", "stage", "match_id", "wall_s", "peak_mb", "rows_in", "rows_out"]
+
+
+def _rows(obj) -> int | None:
+    """Row count of a DataFrame / Series / array (anything with ``shape``), else None."""
+    shape = getattr(obj, "shape", None)
+    return int(shape[0]) if shape else None
+
+
+def benchmark(stage: str):
+    """Decorator: log wall time, peak memory and rows in/out of one pipeline stage.
+
+    - rows_in  = total rows of all DataFrame/array arguments (blank if none, e.g. a loader).
+    - rows_out = rows of the returned DataFrame/array (blank if it returns something else).
+    - match_id = the function's ``match_id`` argument if it has one, so costs are per match.
+
+    If stages are nested, the inner stage's peak is the peak since the outer
+    stage started (an upper bound), because tracemalloc has one global peak.
+    """
+
+    def decorator(func):
+        sig = inspect.signature(func)
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            bound = sig.bind(*args, **kwargs)
+            in_counts = [r for r in map(_rows, bound.arguments.values()) if r is not None]
+
+            started_here = not tracemalloc.is_tracing()
+            if started_here:
+                tracemalloc.start()
+            t0 = time.perf_counter()
+            try:
+                result = func(*args, **kwargs)
+            finally:
+                wall = time.perf_counter() - t0
+                peak = tracemalloc.get_traced_memory()[1]
+                if started_here:
+                    tracemalloc.stop()
+
+            _append_row({
+                "timestamp": datetime.now().isoformat(timespec="seconds"),
+                "stage": stage,
+                "match_id": bound.arguments.get("match_id", ""),
+                "wall_s": round(wall, 3),
+                "peak_mb": round(peak / 1e6, 1),
+                "rows_in": sum(in_counts) if in_counts else "",
+                "rows_out": _rows(result) if _rows(result) is not None else "",
+            })
+            return result
+
+        return wrapper
+
+    return decorator
+
+
+def _append_row(row: dict) -> None:
+    """Append one row to the benchmarks CSV, writing the header if the file is new."""
+    BENCHMARK_CSV.parent.mkdir(parents=True, exist_ok=True)
+    new_file = not BENCHMARK_CSV.exists()
+    with BENCHMARK_CSV.open("a", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=COLUMNS)
+        if new_file:
+            writer.writeheader()
+        writer.writerow(row)
