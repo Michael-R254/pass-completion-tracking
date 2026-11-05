@@ -80,6 +80,7 @@ The folders and empty module stubs already exist. Fill in the stubs; don't reorg
 - Python 3.11+, managed with **uv**. `pyproject.toml` already exists: use `uv sync` to install, `uv add <pkg>` for new dependencies (ask first), `uv run ...` to run. If uv isn't installed, give the install command first. Dependencies: kloppy, mplsoccer, pandas, numpy, scikit-learn, xgboost, shap, matplotlib, pyarrow, pytest.
 - Paths go through `pathlib` relative to the repo root, so it runs on macOS, Linux or Windows.
 - Logic lives in `src/`; notebooks only call it. Fixed random seeds everywhere.
+- **One notebook per PLAN step** (`notebooks/00_setup_check.ipynb`, `01_...`, ...) that imports from `passmodel` and shows that step's results (counts, tables, plots) for the user to inspect in Jupyter. Create it as part of finishing each step.
 - Coordinates in metres, origin at the pitch centre or bottom-left (pick one and document it in `clean.py`).
 - Plots: consistent colours (attacking team vs defending team), titles that a coach would understand without explanation.
 - Small, frequent git commits with clear messages.
