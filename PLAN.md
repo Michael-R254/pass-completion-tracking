@@ -41,22 +41,22 @@ These are the four places where a quick version of this project would give misle
 - [x] Record counts per match and completion rate per match in the README notes
 
 ### 2. Feature engineering (Sat afternoon, ~3–4 hrs)
-- [ ] Implement intended-target rule (decision D3); report agreement with the actual receiver on completed passes
-- [ ] Pass geometry: distance, angle, forward/backward flag, progress toward goal
-- [ ] Location: start x, y; target x, y; zone (thirds / half-spaces)
-- [ ] Velocities (computed in step 1): backward finite difference over ~5 frames (0.2 s), light smoothing; cap physically implausible speeds (>12 m/s)
-- [ ] Build features by reading **only pass start frames** from Parquet, then computing passer/target/defender relationships with NumPy broadcasting (passes × players arrays), with no loops
-- [ ] Passer pressure: distance to nearest opponent, number of opponents within 3 m / 5 m
-- [ ] Target openness: target's distance to nearest defender; defenders closing on the target (relative velocity)
-- [ ] Lane congestion: number of opponents within X m of the passer→target line segment (only between passer and target)
-- [ ] Speeds: passer speed, target speed, nearest defender speed
-- [ ] Unit tests for geometry helpers (distance to segment, angle, flip direction)
-- [ ] Leakage check: every feature uses only frames ≤ start_frame
-- [ ] Output: `data/processed/features.parquet`
+- [x] Implement intended-target rule (decision D3); report agreement with the actual receiver on completed passes
+- [x] Pass geometry: distance, angle, forward/backward flag, progress toward goal
+- [x] Location: start x, y; target x, y; zone (thirds / half-spaces)
+- [x] Velocities (computed in step 1): backward finite difference over ~5 frames (0.2 s), light smoothing; cap physically implausible speeds (>12 m/s)
+- [x] Build features by reading **only pass start frames** from Parquet, then computing passer/target/defender relationships with NumPy broadcasting (passes × players arrays), with no loops
+- [x] Passer pressure: distance to nearest opponent, number of opponents within 3 m / 5 m
+- [x] Target openness: target's distance to nearest defender; defenders closing on the target (relative velocity)
+- [x] Lane congestion: number of opponents within X m of the passer→target line segment (only between passer and target)
+- [x] Speeds: passer speed, target speed, nearest defender speed
+- [x] Unit tests for geometry helpers (distance to segment, angle, flip direction)
+- [x] Leakage check: every feature uses only frames ≤ start_frame
+- [x] Output: `data/processed/features.parquet`
 
 ### 3. Baseline (Sun morning, ~30 min)
-- [ ] Constant model (training base rate): log loss
-- [ ] Logistic regression on pass distance only, leave-one-match-out
+- [x] Constant model (training base rate): log loss
+- [x] Logistic regression on pass distance only, leave-one-match-out
 
 ### 4. Model (Sun morning, ~2 hrs)
 - [ ] XGBoost on full feature set, leave-one-match-out

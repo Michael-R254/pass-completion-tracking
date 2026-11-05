@@ -5,6 +5,10 @@ Built up step by step. Currently (PLAN step 1):
   2. events -> D1/D2 pass labels -> results/d1_label_counts.csv, d2_set_piece_counts.csv
   3. passes: read tracking at pass start frames only -> quality checks -> drop -> data/processed/passes.parquet
      -> results/step1_pass_drops.csv, step1_passes_per_match.csv, figures/sanity_3_passes.png
+  4. features (PLAN step 2): per leave-one-match-out fold, intended target (D3) + features
+     -> data/processed/features.parquet, results/d3_target_agreement.csv
+  5. models (PLAN steps 3-4): leave-one-match-out, open play
+     -> results/predictions.csv (one row per model x test pass), results/metrics_per_fold.csv
 
 Every run logs to results/logs/pipeline_<time>.log (git-ignored). On a crash the full
 traceback and the process's peak memory go into that log before the error is re-raised.
@@ -25,13 +29,17 @@ import pandas as pd
 
 from passmodel.clean import (build_passes, clean_tracking, drop_bad_passes, home_attack_sign, label_counts,
                              label_passes, pass_summary, set_piece_counts, to_metres)
+from passmodel.evaluate import fold_metrics
+from passmodel.features import build_features, read_pass_frames, target_agreement
 from passmodel.load import MATCH_IDS, load_events, load_tracking_long, read_frames, tracking_path, write_tracking
-from passmodel.profiling import process_peak_mb
+from passmodel.models import MODELS, run_lomo
+from passmodel.profiling import BENCHMARK_CSV, process_peak_mb
 from passmodel.viz import plot_sanity_passes
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "results"
 PASSES_PATH = ROOT / "data" / "processed" / "passes.parquet"
+FEATURES_PATH = ROOT / "data" / "processed" / "features.parquet"
 log = logging.getLogger("pipeline")
 
 
@@ -94,7 +102,10 @@ def build_pass_table(labelled: pd.DataFrame) -> pd.DataFrame:
 
 
 def main() -> None:
-    build_tracking(rebuild="--rebuild" in sys.argv)
+    rebuild = "--rebuild" in sys.argv
+    if rebuild:  # a full rebuild starts a fresh benchmarks file, so every stage is timed in one run
+        BENCHMARK_CSV.unlink(missing_ok=True)
+    build_tracking(rebuild)
 
     events = pd.concat([load_events(m) for m in MATCH_IDS], ignore_index=True)
     labelled = label_passes(events)
@@ -104,6 +115,19 @@ def main() -> None:
 
     passes = build_pass_table(labelled)
     plot_sanity_passes(passes, read_frames, n=3, seed=0, path=RESULTS / "figures" / "sanity_3_passes.png")
+    features = build_features(passes, read_pass_frames(passes))
+    features.to_parquet(FEATURES_PATH, index=False)
+    agreement = target_agreement(features)
+    agreement.to_csv(RESULTS / "d3_target_agreement.csv")
+    log.info(f"features: {len(features):,} rows (passes x folds)")
+    log.info(f"\nd3_target_agreement\n{agreement.to_string()}")
+
+    predictions = pd.concat([run_lomo(features, name, factory, cols) for name, (factory, cols) in MODELS.items()],
+                            ignore_index=True)
+    predictions.to_csv(RESULTS / "predictions.csv", index=False)
+    metrics = fold_metrics(predictions)
+    metrics.to_csv(RESULTS / "metrics_per_fold.csv", index=False)
+    log.info(f"\nmetrics_per_fold\n{metrics.to_string(index=False)}")
     log.info(f"done. process peak memory {process_peak_mb():.0f} MB")
 
 

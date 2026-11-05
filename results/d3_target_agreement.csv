@@ -1,0 +1,10 @@
+fold,role,match_id,agreement,n
+1,test match,1,0.562,714
+1,training matches (cross-fitted),2,0.544,886
+1,training matches (cross-fitted),3,0.539,1037
+2,test match,2,0.55,886
+2,training matches (cross-fitted),1,0.563,714
+2,training matches (cross-fitted),3,0.551,1037
+3,test match,3,0.548,1037
+3,training matches (cross-fitted),1,0.556,714
+3,training matches (cross-fitted),2,0.547,886
