@@ -21,7 +21,7 @@ These are the four places where a quick version of this project would give misle
 
 ### 0. Setup (Fri evening or Sat first thing, ~1 hr)
 - [x] Create folder structure, `pyproject.toml`, `.gitignore`, README stub and module stubs (done 5 Nov)
-- [ ] `git init`, first commit (done 5 Nov), create the GitHub repo and push (pending)
+- [x] `git init`, first commit, create the private GitHub repo and push (done 5 Nov)
 - [x] Install uv if needed, then `uv sync` (dependencies are already listed in `pyproject.toml`); check `uv run python -c "import kloppy, mplsoccer, xgboost"` works
 - [x] `profiling.py`: decorator that logs wall time, peak memory and rows in/out per stage to `results/benchmarks.csv`
 - [x] `scripts/download_data.py` fetches Metrica sample data (data/ is git-ignored, never committed)
