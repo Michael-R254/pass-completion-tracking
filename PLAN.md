@@ -22,10 +22,10 @@ These are the four places where a quick version of this project would give misle
 ### 0. Setup (Fri evening or Sat first thing, ~1 hr)
 - [x] Create folder structure, `pyproject.toml`, `.gitignore`, README stub and module stubs (done 5 Nov)
 - [ ] `git init`, first commit (done 5 Nov), create the GitHub repo and push (pending)
-- [ ] Install uv if needed, then `uv sync` (dependencies are already listed in `pyproject.toml`); check `uv run python -c "import kloppy, mplsoccer, xgboost"` works
+- [x] Install uv if needed, then `uv sync` (dependencies are already listed in `pyproject.toml`); check `uv run python -c "import kloppy, mplsoccer, xgboost"` works
 - [x] `profiling.py`: decorator that logs wall time, peak memory and rows in/out per stage to `results/benchmarks.csv`
 - [x] `scripts/download_data.py` fetches Metrica sample data (data/ is git-ignored, never committed)
-- [ ] Confirm kloppy loads tracking for games 1, 2 and 3; confirm how events load (pandas for game 1/2 CSV, kloppy for game 3 JSON)
+- [x] Confirm kloppy loads tracking for games 1, 2 and 3; confirm how events load (pandas for game 1/2 CSV, kloppy for game 3 JSON)
 
 ### 1. Data audit and unified dataset (Sat morning, ~3 hrs)
 - [ ] Load events for all 3 games into **one schema**: match_id, period, start_frame, end_frame, team, from_player, to_player, type, subtype, start_xy, end_xy
