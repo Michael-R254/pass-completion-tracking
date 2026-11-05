@@ -1,0 +1,5 @@
+match_id,passes,completion_rate,open_play_passes,open_play_completion_rate
+1,1049,0.754,952,0.75
+2,1176,0.817,1083,0.818
+3,1406,0.796,1309,0.792
+all,3631,0.791,3344,0.789

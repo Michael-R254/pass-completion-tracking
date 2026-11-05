@@ -1,0 +1,5 @@
+reason,1,2,3,all
+ball not tracked at start frame,1,0,0,1
+passer > 5 m from ball at start frame,9,4,0,13
+total dropped,10,4,0,14
+passes before,1059,1180,1406,3645

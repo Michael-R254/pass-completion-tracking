@@ -29,16 +29,16 @@ These are the four places where a quick version of this project would give misle
 
 ### 1. Data audit and unified dataset (Sat morning, ~3 hrs)
 - [x] Load events for all 3 games into **one schema**: match_id, period, start_frame, end_frame, team, from_player, to_player, type, subtype, start_xy, end_xy
-- [ ] Load tracking for all 3 games into one **long-format** schema: match_id, frame, period, player_id, team, x, y (ball as its own object)
-- [ ] Write tracking to Parquet **partitioned by match**, processing one match at a time so memory stays flat; record row counts and file sizes
-- [ ] Compute velocities for **every frame** in one vectorised pass per match (grouped backward differences), stored alongside positions
-- [ ] Convert to metres (105 × 68 or the pitch size given in the metadata) and **flip coordinates so each team always attacks the same direction** in both halves
+- [x] Load tracking for all 3 games into one **long-format** schema: match_id, frame, period, player_id, team, x, y (ball as its own object)
+- [x] Write tracking to Parquet **partitioned by match**, processing one match at a time so memory stays flat; record row counts and file sizes
+- [x] Compute velocities for **every frame** in one vectorised pass per match (grouped backward differences), stored alongside positions
+- [x] Convert to metres (105 × 68 or the pitch size given in the metadata) and **flip coordinates so each team always attacks the same direction** in both halves
 - [x] Tabulate every event type and subtype; agree the **attempted pass** definition with the user (decision D1)
 - [x] Decide on set pieces: exclude, or keep with a flag (decision D2)
-- [ ] Drop passes whose start frame has missing ball or player positions; log how many are dropped and why
-- [ ] Sanity plot: 3 random passes on a pitch, to check frames and coordinates line up
-- [ ] Output: `data/processed/passes.parquet` with one row per attempted pass and a `completed` label
-- [ ] Record counts per match and completion rate per match in the README notes
+- [x] Drop passes whose start frame has missing ball or player positions; log how many are dropped and why
+- [x] Sanity plot: 3 random passes on a pitch, to check frames and coordinates line up
+- [x] Output: `data/processed/passes.parquet` with one row per attempted pass and a `completed` label
+- [x] Record counts per match and completion rate per match in the README notes
 
 ### 2. Feature engineering (Sat afternoon, ~3–4 hrs)
 - [ ] Implement intended-target rule (decision D3); report agreement with the actual receiver on completed passes

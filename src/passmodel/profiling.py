@@ -9,6 +9,8 @@ Memory is measured with the stdlib ``tracemalloc``: it counts allocations made
 through Python's allocator, which includes NumPy and pandas arrays. It does NOT
 see memory allocated inside Arrow's C++ pool (e.g. inside ``pyarrow.parquet``),
 so Parquet read/write peaks are a lower bound. Stated in the README.
+Each row therefore also logs process_peak_mb: the operating system's high-water mark
+for the whole process so far (includes Arrow and kloppy), via process_peak_mb().
 """
 
 from __future__ import annotations
@@ -16,6 +18,7 @@ from __future__ import annotations
 import csv
 import functools
 import inspect
+import sys
 import time
 import tracemalloc
 from datetime import datetime
@@ -23,7 +26,34 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BENCHMARK_CSV = REPO_ROOT / "results" / "benchmarks.csv"
-COLUMNS = ["timestamp", "stage", "match_id", "wall_s", "peak_mb", "rows_in", "rows_out"]
+COLUMNS = ["timestamp", "stage", "match_id", "wall_s", "peak_mb", "process_peak_mb", "rows_in", "rows_out"]
+
+
+def process_peak_mb() -> float:
+    """Peak memory of this whole process so far, in MB, from the OS (stdlib only).
+
+    Unix: getrusage max RSS. Windows: PeakWorkingSetSize via the Win32 psapi call
+    (the stdlib `resource` module doesn't exist on Windows).
+    """
+    try:
+        import resource
+        peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        return peak / 1e6 if sys.platform == "darwin" else peak / 1e3  # bytes on macOS, KB on Linux
+    except ImportError:
+        import ctypes
+        from ctypes import wintypes
+
+        class Counters(ctypes.Structure):
+            _fields_ = [("cb", wintypes.DWORD), ("PageFaultCount", wintypes.DWORD)] + [
+                (name, ctypes.c_size_t) for name in (
+                    "PeakWorkingSetSize", "WorkingSetSize", "QuotaPeakPagedPoolUsage", "QuotaPagedPoolUsage",
+                    "QuotaPeakNonPagedPoolUsage", "QuotaNonPagedPoolUsage", "PagefileUsage", "PeakPagefileUsage")]
+
+        c = Counters()
+        c.cb = ctypes.sizeof(c)
+        current_process = wintypes.HANDLE(-1)
+        ctypes.windll.psapi.GetProcessMemoryInfo(current_process, ctypes.byref(c), c.cb)
+        return c.PeakWorkingSetSize / 1e6
 
 
 def _rows(obj) -> int | None:
@@ -69,6 +99,7 @@ def benchmark(stage: str):
                 "match_id": bound.arguments.get("match_id", ""),
                 "wall_s": round(wall, 3),
                 "peak_mb": round(peak / 1e6, 1),
+                "process_peak_mb": round(process_peak_mb(), 1),
                 "rows_in": sum(in_counts) if in_counts else "",
                 "rows_out": _rows(result) if _rows(result) is not None else "",
             })

@@ -21,3 +21,6 @@ dist/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Pipeline run logs (machine-specific)
+results/logs/
