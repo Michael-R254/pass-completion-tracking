@@ -8,7 +8,8 @@ Built up step by step. Currently (PLAN step 1):
   4. features (PLAN step 2): per leave-one-match-out fold, intended target (D3) + features
      -> data/processed/features.parquet, results/d3_target_agreement.csv
   5. models (PLAN steps 3-4): leave-one-match-out, open play
-     -> results/predictions.csv (one row per model x test pass), results/metrics_per_fold.csv
+     -> results/predictions.csv (one row per model x test pass), results/metrics_per_fold.csv,
+        results/d4_inner_cv.csv (sensitivity check: inner-CV grid scores and the setting chosen per fold)
 
 Every run logs to results/logs/pipeline_<time>.log (git-ignored). On a crash the full
 traceback and the process's peak memory go into that log before the error is re-raised.
@@ -32,7 +33,8 @@ from passmodel.clean import (build_passes, clean_tracking, drop_bad_passes, home
 from passmodel.evaluate import fold_metrics
 from passmodel.features import build_features, read_pass_frames, target_agreement
 from passmodel.load import MATCH_IDS, load_events, load_tracking_long, read_frames, tracking_path, write_tracking
-from passmodel.models import MODELS, run_lomo
+from passmodel.models import MODELS, inner_cv_sensitivity, run_lomo
+from passmodel import profiling
 from passmodel.profiling import BENCHMARK_CSV, process_peak_mb
 from passmodel.viz import plot_sanity_passes
 
@@ -105,6 +107,8 @@ def main() -> None:
     rebuild = "--rebuild" in sys.argv
     if rebuild:  # a full rebuild starts a fresh benchmarks file, so every stage is timed in one run
         BENCHMARK_CSV.unlink(missing_ok=True)
+    else:  # partial runs skip the tracking stages, so their timings go to the logs, not the committed file
+        profiling.BENCHMARK_CSV = RESULTS / "logs" / "benchmarks_partial_run.csv"
     build_tracking(rebuild)
 
     events = pd.concat([load_events(m) for m in MATCH_IDS], ignore_index=True)
@@ -122,8 +126,12 @@ def main() -> None:
     log.info(f"features: {len(features):,} rows (passes x folds)")
     log.info(f"\nd3_target_agreement\n{agreement.to_string()}")
 
-    predictions = pd.concat([run_lomo(features, name, factory, cols) for name, (factory, cols) in MODELS.items()],
-                            ignore_index=True)
+    inner_scores, tuned_predictions = inner_cv_sensitivity(features)
+    inner_scores.to_csv(RESULTS / "d4_inner_cv.csv", index=False)
+    chosen = inner_scores[inner_scores["chosen"]].to_string(index=False)
+    log.info(f"\nd4 inner CV, chosen setting per fold\n{chosen}")
+    predictions = pd.concat([run_lomo(features, name, factory, cols) for name, (factory, cols) in MODELS.items()]
+                            + [tuned_predictions], ignore_index=True)
     predictions.to_csv(RESULTS / "predictions.csv", index=False)
     metrics = fold_metrics(predictions)
     metrics.to_csv(RESULTS / "metrics_per_fold.csv", index=False)

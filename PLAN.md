@@ -59,9 +59,9 @@ These are the four places where a quick version of this project would give misle
 - [x] Logistic regression on pass distance only, leave-one-match-out
 
 ### 4. Model (Sun morning, ~2 hrs)
-- [ ] XGBoost on full feature set, leave-one-match-out
-- [ ] Hyperparameters: small grid tuned with inner CV grouped by match **within training matches only**, or fixed sensible defaults (decision D4)
-- [ ] Fixed random seeds; save fold predictions to `results/`
+- [x] XGBoost on full feature set, leave-one-match-out
+- [x] Hyperparameters: small grid tuned with inner CV grouped by match **within training matches only**, or fixed sensible defaults (decision D4)
+- [x] Fixed random seeds; save fold predictions to `results/`
 
 ### 5. Honest evaluation (Sun midday, ~2 hrs)
 - [ ] Table: log loss, ROC-AUC, Brier score per fold and mean, for constant / logistic / XGBoost

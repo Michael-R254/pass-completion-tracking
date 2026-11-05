@@ -6,11 +6,15 @@ see the test match during training and overstate how well it generalises to a ne
 The main model uses open-play passes only (D2).
 """
 
-import numpy as np
+from itertools import product
+
 import pandas as pd
 from sklearn.dummy import DummyClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import log_loss
+from xgboost import XGBClassifier
 
+from passmodel.features import FEATURES
 from passmodel.load import MATCH_IDS
 
 SEED = 0
@@ -36,10 +40,24 @@ def logistic_model():
     return LogisticRegression(random_state=SEED)
 
 
+# D4: fixed, conservative settings chosen BEFORE seeing any XGBoost result (no tuning).
+# Shallow trees + slow learning rate + row/column subsampling, because each fold trains on only ~2,300 passes.
+XGB_DEFAULTS = dict(n_estimators=300, max_depth=3, learning_rate=0.05, subsample=0.8, colsample_bytree=0.8,
+                    min_child_weight=5)
+# D4 sensitivity check only: the small grid searched by inner leave-one-match-out CV.
+XGB_GRID = {"max_depth": [2, 3, 4], "learning_rate": [0.03, 0.1], "n_estimators": [200, 500]}
+
+
+def xgb_model(**params):
+    """XGBoost classifier with the D4 defaults, overridable for the sensitivity check. Fixed seed."""
+    return XGBClassifier(**{**XGB_DEFAULTS, **params}, random_state=SEED, eval_metric="logloss", n_jobs=4)
+
+
 MODELS = {
     # name: (factory, feature columns)
     "constant": (constant_model, ["pass_length"]),   # the column is ignored by DummyClassifier
     "logistic (pass length)": (logistic_model, ["pass_length"]),
+    "xgboost (all features)": (xgb_model, FEATURES),
 }
 
 
@@ -51,10 +69,47 @@ def run_lomo(features: pd.DataFrame, name: str, factory, columns: list[str]) -> 
     out = []
     for fold in MATCH_IDS:
         train, test = fold_split(features, fold)
-        model = factory().fit(train[columns], train["completed"])
+        model = factory().fit(train[columns].astype(float), train["completed"])
         out.append(pd.DataFrame({
             "model": name, "fold": fold, "match_id": test["match_id"].to_numpy(),
             "event_id": test["event_id"].to_numpy(), "completed": test["completed"].to_numpy(),
-            "p_complete": model.predict_proba(test[columns])[:, 1],
+            "p_complete": model.predict_proba(test[columns].astype(float))[:, 1],
         }))
     return pd.concat(out, ignore_index=True)
+
+
+def inner_cv_sensitivity(features: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """D4 sensitivity check: what would inner CV have picked, and how would it have scored?
+
+    For each outer fold, using ONLY its two training matches: train on one, validate on the other
+    (both ways), for every XGB_GRID setting; pick the lowest mean inner log loss; refit on both
+    training matches; predict the outer test match once.
+    Caveat (documented in CLAUDE.md D4): in the inner split, the training match's intended targets
+    were learned from the validation match's receivers (D3 cross-fitting), so inner scores are
+    slightly optimistic. No completion labels or outer-test data are involved.
+    Returns (one row per outer fold and grid setting with its inner log loss, test predictions).
+    """
+    grid = [dict(zip(XGB_GRID, values)) for values in product(*XGB_GRID.values())]
+    scores, preds = [], []
+    for fold in MATCH_IDS:
+        train, test = fold_split(features, fold)
+        X = train[FEATURES].astype(float)
+        inner = []
+        for params in grid:
+            losses = []
+            for val_match in train["match_id"].unique():
+                fit, val = train["match_id"] != val_match, train["match_id"] == val_match
+                m = xgb_model(**params).fit(X[fit], train.loc[fit, "completed"])
+                losses.append(log_loss(train.loc[val, "completed"], m.predict_proba(X[val])[:, 1], labels=[False, True]))
+            inner.append({"fold": fold, **params, "inner_log_loss": sum(losses) / len(losses)})
+        inner = pd.DataFrame(inner)
+        inner["chosen"] = inner["inner_log_loss"] == inner["inner_log_loss"].min()
+        best = inner.loc[inner["chosen"], list(XGB_GRID)].iloc[0].to_dict()
+        best = {k: (int(v) if k != "learning_rate" else float(v)) for k, v in best.items()}
+        model = xgb_model(**best).fit(X, train["completed"])
+        preds.append(pd.DataFrame({
+            "model": "xgboost (inner-CV tuned, sensitivity)", "fold": fold, "match_id": test["match_id"].to_numpy(),
+            "event_id": test["event_id"].to_numpy(), "completed": test["completed"].to_numpy(),
+            "p_complete": model.predict_proba(test[FEATURES].astype(float))[:, 1]}))
+        scores.append(inner)
+    return pd.concat(scores, ignore_index=True).round(4), pd.concat(preds, ignore_index=True)

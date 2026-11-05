@@ -7,3 +7,11 @@ logistic (pass length),1,952.0,0.5664,0.5718,0.1887
 logistic (pass length),2,1083.0,0.479,0.5534,0.1504
 logistic (pass length),3,1309.0,0.5093,0.5542,0.1639
 logistic (pass length),mean,1114.6667,0.5183,0.5598,0.1677
+xgboost (all features),1,952.0,0.5201,0.7273,0.1678
+xgboost (all features),2,1083.0,0.4186,0.7481,0.1327
+xgboost (all features),3,1309.0,0.4541,0.7414,0.1461
+xgboost (all features),mean,1114.6667,0.4643,0.7389,0.1489
+"xgboost (inner-CV tuned, sensitivity)",1,952.0,0.5105,0.7266,0.1676
+"xgboost (inner-CV tuned, sensitivity)",2,1083.0,0.4216,0.7441,0.1319
+"xgboost (inner-CV tuned, sensitivity)",3,1309.0,0.4462,0.7557,0.1437
+"xgboost (inner-CV tuned, sensitivity)",mean,1114.6667,0.4594,0.7422,0.1477
