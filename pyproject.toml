@@ -20,6 +20,7 @@ dependencies = [
 dev = [
     "pytest",
     "ipykernel",
+    "jupyterlab>=4.6.5",
 ]
 
 [build-system]

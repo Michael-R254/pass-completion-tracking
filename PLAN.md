@@ -28,7 +28,7 @@ These are the four places where a quick version of this project would give misle
 - [x] Confirm kloppy loads tracking for games 1, 2 and 3; confirm how events load (pandas for game 1/2 CSV, kloppy for game 3 JSON)
 
 ### 1. Data audit and unified dataset (Sat morning, ~3 hrs)
-- [ ] Load events for all 3 games into **one schema**: match_id, period, start_frame, end_frame, team, from_player, to_player, type, subtype, start_xy, end_xy
+- [x] Load events for all 3 games into **one schema**: match_id, period, start_frame, end_frame, team, from_player, to_player, type, subtype, start_xy, end_xy
 - [ ] Load tracking for all 3 games into one **long-format** schema: match_id, frame, period, player_id, team, x, y (ball as its own object)
 - [ ] Write tracking to Parquet **partitioned by match**, processing one match at a time so memory stays flat; record row counts and file sizes
 - [ ] Compute velocities for **every frame** in one vectorised pass per match (grouped backward differences), stored alongside positions

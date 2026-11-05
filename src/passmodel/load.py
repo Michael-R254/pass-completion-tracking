@@ -63,6 +63,45 @@ def raw_event_types(match_id: int) -> pd.DataFrame:
                          "Subtype": [subtype(e) for e in events]})
 
 
+EVENT_COLUMNS = ["match_id", "period", "start_frame", "end_frame", "team", "from_player", "to_player",
+                 "type", "subtype", "start_x", "start_y", "end_x", "end_y"]
+
+
+def load_events(match_id: int) -> pd.DataFrame:
+    """All events for one match in one schema (EVENT_COLUMNS), in Metrica's raw vocabulary.
+
+    Coordinates are still Metrica's normalised 0-1 units; clean.py converts to metres.
+    Player names are made to match across formats ("Player19" in CSV, "Player 19" in JSON).
+    """
+    d = game_dir(match_id)
+    if match_id in (1, 2):
+        raw = pd.read_csv(d / f"Sample_Game_{match_id}_RawEventsData.csv")
+        df = pd.DataFrame({
+            "period": raw["Period"], "start_frame": raw["Start Frame"], "end_frame": raw["End Frame"],
+            "team": raw["Team"], "from_player": raw["From"], "to_player": raw["To"],
+            "type": raw["Type"], "subtype": raw["Subtype"],
+            "start_x": raw["Start X"], "start_y": raw["Start Y"], "end_x": raw["End X"], "end_y": raw["End Y"],
+        })
+    else:
+        events = json.loads((d / "Sample_Game_3_events.json").read_text())["data"]
+        subtypes = raw_event_types(3)["Subtype"]
+        name = lambda p: p["name"].replace(" ", "") if p else None  # "Player 10" -> "Player10"
+        df = pd.DataFrame({
+            "period": [e["period"] for e in events],
+            "start_frame": [e["start"]["frame"] for e in events],
+            "end_frame": [e["end"]["frame"] for e in events],
+            "team": [e["team"]["name"] for e in events],
+            "from_player": [name(e.get("from")) for e in events],
+            "to_player": [name(e.get("to")) for e in events],
+            "type": [e["type"]["name"] for e in events],
+            "subtype": subtypes.to_numpy(),
+            "start_x": [e["start"]["x"] for e in events], "start_y": [e["start"]["y"] for e in events],
+            "end_x": [e["end"]["x"] for e in events], "end_y": [e["end"]["y"] for e in events],
+        })
+    df.insert(0, "match_id", match_id)
+    return df[EVENT_COLUMNS].astype({"start_x": float, "start_y": float, "end_x": float, "end_y": float})
+
+
 def event_type_table() -> pd.DataFrame:
     """Counts of every event Type x Subtype, one column per match plus a total."""
     events = pd.concat({m: raw_event_types(m) for m in MATCH_IDS}, names=["match_id"]).reset_index("match_id")
