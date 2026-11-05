@@ -78,7 +78,9 @@ def load_events(match_id: int) -> pd.DataFrame:
         raw = pd.read_csv(d / f"Sample_Game_{match_id}_RawEventsData.csv")
         df = pd.DataFrame({
             "period": raw["Period"], "start_frame": raw["Start Frame"], "end_frame": raw["End Frame"],
-            "team": raw["Team"], "from_player": raw["From"], "to_player": raw["To"],
+            "team": raw["Team"],
+            # game 2 writes "Player 26" with a space; strip so every game uses "PlayerNN"
+            "from_player": raw["From"].str.replace(" ", ""), "to_player": raw["To"].str.replace(" ", ""),
             "type": raw["Type"], "subtype": raw["Subtype"],
             "start_x": raw["Start X"], "start_y": raw["Start Y"], "end_x": raw["End X"], "end_y": raw["End Y"],
         })

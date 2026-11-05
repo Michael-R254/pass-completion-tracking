@@ -33,7 +33,7 @@ These are the four places where a quick version of this project would give misle
 - [ ] Write tracking to Parquet **partitioned by match**, processing one match at a time so memory stays flat; record row counts and file sizes
 - [ ] Compute velocities for **every frame** in one vectorised pass per match (grouped backward differences), stored alongside positions
 - [ ] Convert to metres (105 × 68 or the pitch size given in the metadata) and **flip coordinates so each team always attacks the same direction** in both halves
-- [ ] Tabulate every event type and subtype; agree the **attempted pass** definition with the user (decision D1)
+- [x] Tabulate every event type and subtype; agree the **attempted pass** definition with the user (decision D1)
 - [ ] Decide on set pieces: exclude, or keep with a flag (decision D2)
 - [ ] Drop passes whose start frame has missing ball or player positions; log how many are dropped and why
 - [ ] Sanity plot: 3 random passes on a pitch, to check frames and coordinates line up

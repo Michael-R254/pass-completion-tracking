@@ -1,0 +1,15 @@
+,1,2,3,all
+completed,796.0,963.0,1119.0,2878.0
+excluded: CLEARANCE,15.0,10.0,22.0,47.0
+excluded: END HALF,1.0,0.0,2.0,3.0
+excluded: FORCED,4.0,7.0,7.0,18.0
+excluded: HAND BALL,0.0,3.0,2.0,5.0
+excluded: OFFSIDE,1.0,1.0,4.0,6.0
+excluded: REFEREE HIT,1.0,0.0,1.0,2.0
+excluded: THEFT,21.0,38.0,26.0,85.0
+excluded: WOODWORK,2.0,0.0,0.0,2.0
+excluded: ball out: after BALL LOST,0.0,2.0,0.0,2.0
+excluded: ball out: after tackle or THEFT,3.0,5.0,3.0,11.0
+failed,263.0,217.0,287.0,767.0
+all,1107.0,1246.0,1473.0,3826.0
+completion_rate,0.752,0.816,0.796,0.79
