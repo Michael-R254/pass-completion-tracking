@@ -22,7 +22,7 @@ def label_passes(events: pd.DataFrame) -> pd.DataFrame:
     pass_bucket:
       completed  PASS row
       failed     BALL LOST row (lost in play: intercepted, headed or crossed to an opponent, ...)
-      failed_out BALL OUT row (player in possession puts the ball out of play) -- pending D1
+                 or BALL OUT row (player in possession puts the ball out of play); `type` tells which
       excluded   any of the above whose subtype has an EXCLUDE_TOKENS token
       NaN        not a pass-type event
     Flags: is_cross, is_header, is_set_piece. A set piece is a separate SET PIECE row
@@ -32,7 +32,7 @@ def label_passes(events: pd.DataFrame) -> pd.DataFrame:
     """
     ev = events.copy()
     tok = _tokens(ev["subtype"])
-    bucket = ev["type"].map({"PASS": "completed", "BALL LOST": "failed", "BALL OUT": "failed_out"})
+    bucket = ev["type"].map({"PASS": "completed", "BALL LOST": "failed", "BALL OUT": "failed"})
     excluded = bucket.notna() & tok.map(lambda t: bool(t & EXCLUDE_TOKENS))
     ev["pass_bucket"] = bucket.mask(excluded, "excluded")
 

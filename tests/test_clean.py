@@ -13,7 +13,7 @@ def test_label_passes():
         "subtype": ["THROW IN", None, None, "HEAD-INTERCEPTION", "CLEARANCE", None, "THEFT", "GOAL KICK", None],
     })
     out = label_passes(ev)
-    assert out["pass_bucket"].fillna("-").tolist() == ["-", "-", "completed", "failed", "excluded", "failed_out",
+    assert out["pass_bucket"].fillna("-").tolist() == ["-", "-", "completed", "failed", "excluded", "failed",
                                                        "excluded", "completed", "-"]
     assert out["is_set_piece"].tolist() == [False, False, True, False, False, False, False, True, False]
     assert out["is_header"].tolist()[3] and not out["is_header"].tolist()[2]
