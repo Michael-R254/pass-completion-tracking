@@ -14,7 +14,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import log_loss
 from xgboost import XGBClassifier
 
-from passmodel.features import FEATURE_GROUPS, FEATURES
+from passmodel.features import FEATURE_GROUPS, FEATURES, PITCH_CONTROL
 from passmodel.load import MATCH_IDS
 
 SEED = 0
@@ -58,6 +58,9 @@ MODELS = {
     "constant": (constant_model, ["pass_length"]),   # the column is ignored by DummyClassifier
     "logistic (pass length)": (logistic_model, ["pass_length"]),
     "xgboost (all features)": (xgb_model, FEATURES),
+    # Stretch (PLAN): pitch control is kept only if it beats the headline model on held-out log loss.
+    "logistic (pitch control)": (logistic_model, [PITCH_CONTROL]),
+    "xgboost (all features + pitch control)": (xgb_model, FEATURES + [PITCH_CONTROL]),
 }
 
 

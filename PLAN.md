@@ -83,9 +83,9 @@ These are the four places where a quick version of this project would give misle
 - [x] Fresh-clone test: delete the env, reinstall, run end to end
 
 ### Stretch: pitch control (only if steps 0–7 are done)
-- [ ] Implement Spearman-style pitch control following Laurie Shaw's Friends of Tracking tutorial (credit it)
-- [ ] Feature: attacking team's control at the intended target location at the pass frame
-- [ ] Re-run leave-one-match-out; keep it **only if** it improves held-out log loss beyond fold-to-fold noise. Report the result either way.
+- [x] Implement Spearman-style pitch control following Laurie Shaw's Friends of Tracking tutorial (credit it)
+- [x] Feature: attacking team's control at the intended target location at the pass frame
+- [x] Re-run leave-one-match-out; keep it **only if** it improves held-out log loss beyond fold-to-fold noise. Report the result either way.
 
 ---
 
@@ -93,5 +93,5 @@ These are the four places where a quick version of this project would give misle
 - "I split by match because passes within a match are correlated; a random split would leak."
 - "Failed passes don't have a receiver, so I defined an intended target the same way for both outcomes. Otherwise the receiver feature leaks the label."
 - "A '70%' from my model completes about X% of the time" (from the calibration plot).
-- "Pitch control did / didn't beat the simpler features on held-out matches, so I kept / dropped it."
+- "Pitch control didn't beat the simpler features on held-out matches (better on 1 of 3, every CI includes zero), so I dropped it."
 - "The pipeline processes ~10M tracking rows in X minutes at Y GB peak memory, one match at a time, so a full season is about Z hours on a laptop" (fill in from `benchmarks.csv`).

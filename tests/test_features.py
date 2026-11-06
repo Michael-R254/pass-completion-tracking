@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from passmodel.clean import add_velocities
-from passmodel.features import (FEATURES, angle_deg, build_features, candidate_features, fold_targets,
+from passmodel.features import (FEATURES, PITCH_CONTROL, angle_deg, pitch_control, build_features, candidate_features, fold_targets,
                                 pass_frame_arrays, point_to_segment, read_pass_frames)
 from passmodel.load import REPO_ROOT
 
@@ -35,6 +35,15 @@ def test_velocity_uses_only_past_frames():
     assert np.isclose(v1[10], 5.0) and v1[:10].equals(v2[:10]) and v1[10] == v2[10]
 
 
+def test_pitch_control_sanity():
+    """Mirror-image players -> 0.5; an attacker alone at the target -> ~1; a defender alone there -> ~0."""
+    one = lambda x: {"x": np.array([[x]]), "y": np.array([[0.0]]), "vx": np.zeros((1, 1)), "vy": np.zeros((1, 1))}
+    ball, tx, ty, no_gk = np.array([[0.0, 20.0]]), np.array([0.0]), np.array([0.0]), np.array([[False]])
+    assert np.isclose(pitch_control(ball, tx, ty, one(-5.0), one(5.0), no_gk), 0.5)
+    assert pitch_control(ball, tx, ty, one(0.0), one(30.0), no_gk) > 0.99
+    assert pitch_control(ball, tx, ty, one(30.0), one(0.0), no_gk) < 0.01
+
+
 @needs_data
 def test_features_ignore_frames_after_the_pass():
     """Adding garbage tracking rows just after each pass start must not change any feature."""
@@ -45,7 +54,7 @@ def test_features_ignore_frames_after_the_pass():
     later = later[[(m, f) not in starts for m, f in zip(later["match_id"], later["frame"])]]  # only non-pass frames
     f1 = build_features(p, frames)
     f2 = build_features(p, pd.concat([frames, later], ignore_index=True))
-    pd.testing.assert_frame_equal(f1[FEATURES], f2[FEATURES])
+    pd.testing.assert_frame_equal(f1[FEATURES + [PITCH_CONTROL]], f2[FEATURES + [PITCH_CONTROL]])
 
 
 @needs_data

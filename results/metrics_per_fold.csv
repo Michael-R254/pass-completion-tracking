@@ -7,6 +7,14 @@ logistic (pass length),1,952.0,0.5664,0.5718,0.1887
 logistic (pass length),2,1083.0,0.479,0.5534,0.1504
 logistic (pass length),3,1309.0,0.5093,0.5542,0.1639
 logistic (pass length),mean,1114.6667,0.5183,0.5598,0.1677
+logistic (pitch control),1,952.0,0.5618,0.626,0.187
+logistic (pitch control),2,1083.0,0.4798,0.5846,0.1516
+logistic (pitch control),3,1309.0,0.4949,0.6632,0.1589
+logistic (pitch control),mean,1114.6667,0.5121,0.6246,0.1658
+xgboost (all features + pitch control),1,952.0,0.516,0.7287,0.1661
+xgboost (all features + pitch control),2,1083.0,0.4213,0.7431,0.1339
+xgboost (all features + pitch control),3,1309.0,0.4604,0.7313,0.1476
+xgboost (all features + pitch control),mean,1114.6667,0.4659,0.7344,0.1492
 xgboost (all features),1,952.0,0.5201,0.7273,0.1678
 xgboost (all features),2,1083.0,0.4186,0.7481,0.1327
 xgboost (all features),3,1309.0,0.4541,0.7414,0.1461

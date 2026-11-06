@@ -7,6 +7,14 @@ logistic (pass length),1,log_loss,0.5664,0.5299,0.6054
 logistic (pass length),1,roc_auc,0.5718,0.5309,0.6127
 logistic (pass length),1,brier,0.1887,0.173,0.2055
 logistic (pass length),1,delta_log_loss,0.0,0.0,0.0
+logistic (pitch control),1,log_loss,0.5618,0.5214,0.6006
+logistic (pitch control),1,roc_auc,0.626,0.5847,0.6649
+logistic (pitch control),1,brier,0.187,0.1698,0.2031
+logistic (pitch control),1,delta_log_loss,-0.0047,-0.0148,0.0058
+xgboost (all features + pitch control),1,log_loss,0.516,0.4665,0.5639
+xgboost (all features + pitch control),1,roc_auc,0.7287,0.6939,0.7652
+xgboost (all features + pitch control),1,brier,0.1661,0.1483,0.1826
+xgboost (all features + pitch control),1,delta_log_loss,-0.0504,-0.0797,-0.0221
 xgboost (all features),1,log_loss,0.5201,0.4689,0.5675
 xgboost (all features),1,roc_auc,0.7273,0.692,0.7638
 xgboost (all features),1,brier,0.1678,0.1493,0.1844
@@ -19,6 +27,14 @@ logistic (pass length),2,log_loss,0.479,0.4528,0.5055
 logistic (pass length),2,roc_auc,0.5534,0.5086,0.5986
 logistic (pass length),2,brier,0.1504,0.1388,0.1621
 logistic (pass length),2,delta_log_loss,0.0,0.0,0.0
+logistic (pitch control),2,log_loss,0.4798,0.4504,0.5087
+logistic (pitch control),2,roc_auc,0.5846,0.5425,0.6263
+logistic (pitch control),2,brier,0.1516,0.1389,0.1639
+logistic (pitch control),2,delta_log_loss,0.0008,-0.0089,0.0109
+xgboost (all features + pitch control),2,log_loss,0.4213,0.3907,0.4538
+xgboost (all features + pitch control),2,roc_auc,0.7431,0.7029,0.7799
+xgboost (all features + pitch control),2,brier,0.1339,0.1224,0.146
+xgboost (all features + pitch control),2,delta_log_loss,-0.0577,-0.0794,-0.0347
 xgboost (all features),2,log_loss,0.4186,0.3875,0.4507
 xgboost (all features),2,roc_auc,0.7481,0.7095,0.7841
 xgboost (all features),2,brier,0.1327,0.1211,0.145
@@ -31,6 +47,14 @@ logistic (pass length),3,log_loss,0.5093,0.4813,0.5382
 logistic (pass length),3,roc_auc,0.5542,0.5145,0.5965
 logistic (pass length),3,brier,0.1639,0.1522,0.1764
 logistic (pass length),3,delta_log_loss,0.0,0.0,0.0
+logistic (pitch control),3,log_loss,0.4949,0.4685,0.5222
+logistic (pitch control),3,roc_auc,0.6632,0.6298,0.6993
+logistic (pitch control),3,brier,0.1589,0.1474,0.1708
+logistic (pitch control),3,delta_log_loss,-0.0144,-0.0215,-0.0077
+xgboost (all features + pitch control),3,log_loss,0.4604,0.4263,0.4938
+xgboost (all features + pitch control),3,roc_auc,0.7313,0.6991,0.7638
+xgboost (all features + pitch control),3,brier,0.1476,0.1355,0.16
+xgboost (all features + pitch control),3,delta_log_loss,-0.0489,-0.0722,-0.0286
 xgboost (all features),3,log_loss,0.4541,0.4214,0.4859
 xgboost (all features),3,roc_auc,0.7414,0.7097,0.7737
 xgboost (all features),3,brier,0.1461,0.1339,0.158

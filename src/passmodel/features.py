@@ -172,6 +172,74 @@ def fold_targets(passes: pd.DataFrame, a: dict, X: np.ndarray, test_match: int) 
     return pd.concat(parts).sort_index()
 
 
+# ---------------------------------------------------------------- stretch: pitch control
+
+# Spearman (2018) physics-based pitch control, parameters as in Laurie Shaw's Friends of Tracking
+# tutorial (github.com/Friends-of-Tracking-Data-FoTD/LaurieOnTracking, Metrica_PitchControl.py).
+PC_MAX_SPEED = 5.0      # m/s, player top speed when running to the ball
+PC_REACTION_S = 0.7     # s, players keep their current velocity for this long before turning
+PC_SIGMA = 0.45         # s, uncertainty in each player's time to intercept
+PC_LAMBDA = 4.3         # 1/s, control rate once a player has reached the ball (both teams; kappa_def = 1)
+PC_LAMBDA_GK = 3 * PC_LAMBDA  # goalkeepers can use their hands
+PC_BALL_SPEED = 15.0    # m/s, average pass speed
+PC_DT, PC_MAX_T = 0.04, 10.0  # s, integration step and horizon
+
+
+def _intercept_prob(x, y, vx, vy, tx, ty, T):
+    """P(player has reached point (tx, ty) by time T). Arrays broadcast: (N, players) with (N, 1).
+
+    Time to intercept: the player keeps running at their current velocity for the reaction time, then
+    runs straight at the point at top speed. Arrival is uncertain, so P is a logistic curve around it.
+    Missing players (NaN position) get probability 0.
+    """
+    rx, ry = x + vx * PC_REACTION_S, y + vy * PC_REACTION_S
+    tti = PC_REACTION_S + np.hypot(tx - rx, ty - ry) / PC_MAX_SPEED
+    p = 1 / (1 + np.exp(-np.pi / np.sqrt(3) / PC_SIGMA * (T - tti)))
+    return np.nan_to_num(p)
+
+
+def pitch_control(ball_xy, tx, ty, att, opp, opp_is_gk):
+    """Attacking team's probability of controlling the ball at (tx, ty), one value per pass.
+
+    Tracking idea: pitch control asks, for a point on the pitch, "if the ball were played there now, which
+    team would get it first?" The ball takes distance / 15 m/s to arrive. From that moment on, at each small
+    time step, every player who has reached the point gets a chance to win the ball, at rate lambda per
+    second, out of whatever probability is still uncontrolled. Integrating gives P(attack) + P(defence) -> 1.
+
+    att, opp: dicts of (N, k) arrays x, y, vx, vy (passing team attacks +x). opp_is_gk: (N, 11) bool.
+    The loop is over integration time steps (250), not passes or players: each step updates all N passes
+    x 22 players at once with broadcasting.
+    """
+    tx, ty = tx[:, None], ty[:, None]
+    att_args = [att["x"], att["y"], np.nan_to_num(att["vx"]), np.nan_to_num(att["vy"])]  # NaN velocity = standing
+    opp_args = [opp["x"], opp["y"], np.nan_to_num(opp["vx"]), np.nan_to_num(opp["vy"])]
+    opp_lambda = np.where(opp_is_gk, PC_LAMBDA_GK, PC_LAMBDA)
+    t_ball = np.hypot(tx[:, 0] - ball_xy[:, 0], ty[:, 0] - ball_xy[:, 1]) / PC_BALL_SPEED
+    p_att, p_def = np.zeros(len(tx)), np.zeros(len(tx))
+    for step in range(int(PC_MAX_T / PC_DT)):
+        T = (t_ball + step * PC_DT)[:, None]
+        rate_att = (PC_LAMBDA * _intercept_prob(*att_args, tx, ty, T)).sum(axis=1)
+        rate_def = (opp_lambda * _intercept_prob(*opp_args, tx, ty, T)).sum(axis=1)
+        free = 1 - p_att - p_def
+        p_att, p_def = p_att + free * rate_att * PC_DT, p_def + free * rate_def * PC_DT
+    # ponytail: no offside check (Shaw excludes offside attackers); add it if pitch control earns its place.
+    return p_att / (p_att + p_def)  # renormalise the small mass left uncontrolled after 10 s
+
+
+def target_pitch_control(a: dict, tx, ty) -> np.ndarray:
+    """Pitch control at the intended target's position, at the pass start frame (start-frame data only).
+
+    Attackers = passer + 10 teammates; the ball starts at the passer. Goalkeeper = the defender nearest
+    their own goal (52.5, 0) at that frame, a one-line rule since the data has no position labels.
+    """
+    passer = {"x": a["passer_xy"][:, 0], "y": a["passer_xy"][:, 1], "vx": a["passer_v"][:, 0], "vy": a["passer_v"][:, 1]}
+    att = {c: np.column_stack([passer[c], a[f"mate_{c}"]]) for c in passer}
+    opp = {c: a[f"opp_{c}"] for c in ("x", "y", "vx", "vy")}
+    d_goal = np.where(np.isnan(opp["x"]), np.inf, np.hypot(GOAL[0] - opp["x"], GOAL[1] - opp["y"]))
+    is_gk = np.arange(N_OPPS)[None, :] == d_goal.argmin(axis=1)[:, None]
+    return pitch_control(a["passer_xy"], tx, ty, att, opp, is_gk)
+
+
 # ---------------------------------------------------------------- pass features
 
 FEATURE_GROUPS = {
@@ -184,6 +252,9 @@ FEATURE_GROUPS = {
     "event": ["is_cross", "is_header"],
 }
 FEATURES = [f for group in FEATURE_GROUPS.values() for f in group]
+# Stretch: stored in features.parquet but NOT in FEATURES, so the headline model is unchanged
+# unless pitch control beats it on held-out log loss.
+PITCH_CONTROL = "target_pitch_control"
 
 
 def pass_features(passes: pd.DataFrame, a: dict, targets: pd.DataFrame) -> pd.DataFrame:
@@ -240,7 +311,8 @@ def pass_features(passes: pd.DataFrame, a: dict, targets: pd.DataFrame) -> pd.Da
         "is_header": p["is_header"].to_numpy(),
     })
     f["lane_min_opp_dist"] = f["lane_min_opp_dist"].fillna(LANE_WIDTH_M * 10)  # nobody between: lane wide open
-    return f[FEATURES]
+    f[PITCH_CONTROL] = target_pitch_control(a, tx, ty)
+    return f[FEATURES + [PITCH_CONTROL]]
 
 
 @benchmark("build features (all folds)")

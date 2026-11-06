@@ -18,6 +18,8 @@ Built up step by step. Currently (PLAN step 1):
         figures/pass_stories.png
   8. scaling (PLAN step 7): results/benchmarks.csv (from the last --rebuild run) projected to a 380-match season
      -> results/step7_scaling.csv
+  9. stretch: pitch control at the intended target (features.target_pitch_control), as an extra model
+     -> rows in metrics_per_fold.csv, results/stretch_pitch_control_ci.csv
 
 Every run logs to results/logs/pipeline_<time>.log (git-ignored). On a crash the full
 traceback and the process's peak memory go into that log before the error is re-raised.
@@ -191,6 +193,10 @@ def main() -> None:
     log.info(f"\nmetrics_per_fold\n{metrics.to_string(index=False)}")
     run_evaluation(features, predictions)
     run_football(features, predictions, passes)
+    # Stretch: does pitch control beat the headline model? Paired bootstrap delta vs the headline.
+    pc = predictions[predictions["model"].isin([HEADLINE, "xgboost (all features + pitch control)"])]
+    ci = bootstrap_ci(pc, baseline=HEADLINE)
+    save(ci[ci["model"] != HEADLINE], "stretch_pitch_control_ci")
     # Always from the committed benchmarks.csv: only a --rebuild run times every stage in one go.
     save(season_projection(BENCHMARK_CSV, RESULTS / "tracking_files.csv"), "step7_scaling", index=True)
     log.info(f"done. process peak memory {process_peak_mb():.0f} MB")

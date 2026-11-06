@@ -108,6 +108,18 @@ Minutes are minutes of play from kick-off (frame / 1,500), not the match clock. 
 ### Completion above expected, with a strong caveat
 `results/step6_completion_above_expected.csv` gives each player's completion rate minus the model's expectation (players with at least 40 passes in a match). The mean per match is −4.7 pts (match 1), +4.8 (match 2) and −0.1 (match 3). That's a **match effect**, not player skill: match 2's base rate is higher and the model never saw it while training. With 40-90 passes per player, most differences are within 2 standard errors of zero. Not a player ranking.
 
+## Stretch: does pitch control help? No, it isn't kept
+Pitch control asks, for a point on the pitch, "if the ball were played there now, which team would win it?" Each player needs a reaction time (0.7 s at their current velocity) and then runs at up to 5 m/s. Once the ball arrives (at 15 m/s), each player who has got there wins it at a fixed rate, out of whatever chance is still unclaimed. This is the Spearman (2018) model with the parameters from [Laurie Shaw's Friends of Tracking tutorial](https://github.com/Friends-of-Tracking-Data-FoTD/LaurieOnTracking), credited and reimplemented vectorised over all passes (`features.pitch_control`). The feature is the passing team's control at the intended target's position at the pass frame.
+
+| Model | Log loss (1 / 2 / 3, mean) | ROC-AUC mean |
+|---|---|---|
+| Logistic, pass length only | 0.566 / 0.479 / 0.509, **0.518** | 0.560 |
+| Logistic, pitch control only | 0.562 / 0.480 / 0.495, **0.512** | 0.625 |
+| XGBoost, all features (headline) | 0.520 / 0.419 / 0.454, **0.464** | 0.739 |
+| XGBoost, all features + pitch control | 0.516 / 0.421 / 0.460, **0.466** | 0.734 |
+
+(`results/metrics_per_fold.csv`.) **On its own, pitch control is a better single feature than pass length** (AUC 0.62 vs 0.56). **On top of the existing features it adds nothing**: the change in log loss vs the headline is −0.004 [−0.011, 0.004], +0.003 [−0.002, 0.008] and +0.006 [−0.000, 0.013] on matches 1-3. It helps on one match and hurts on two, and every CI includes zero (`results/stretch_pitch_control_ci.csv`). The likely reason is that it is mostly a smarter version of "how much space does the target have", which the model already has (`target_nearest_opp`, rank correlation 0.90 with pitch control). Following the plan's rule, it is **not** added to the headline model. It costs about 0.8 s per pipeline run.
+
 ## Scaling
 Tracking is the biggest data in football: here, **9,727,275 position rows** for 3 matches (about 3.2M per match). The pipeline is built as if it had to run on a full season:
 - tracking is stored as long-format Parquet, one file per match, processed one match at a time, so memory doesn't grow with the number of matches;
@@ -138,7 +150,7 @@ Measured on a Windows laptop during a fresh-clone `--rebuild` run (6 Nov 2026), 
 - **Anonymised teams and players**, and player IDs may not refer to the same person across matches. Player-level results are not meaningful here.
 - **Event-tracking sync error:** event frames are hand-tagged, so the start frame can be a few frames off. 13 passes were dropped where the passer was more than 5 m from the ball.
 - **Match context is missing:** score, game state and team strength aren't features, which shows up as match-level miscalibration (match 2 completes more than predicted).
-- **No pitch control** (the stretch goal in `PLAN.md` wasn't attempted).
+- **Pitch control is a simplified Spearman model:** no offside check, the goalkeeper is guessed as the defender nearest their own goal, and the parameters are Shaw's defaults, not fitted to this data.
 
 ## How to reproduce
 ```powershell

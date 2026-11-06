@@ -1,0 +1,13 @@
+model,fold,metric,estimate,ci_low,ci_high
+xgboost (all features + pitch control),1,log_loss,0.516,0.4665,0.5639
+xgboost (all features + pitch control),1,roc_auc,0.7287,0.6939,0.7652
+xgboost (all features + pitch control),1,brier,0.1661,0.1483,0.1826
+xgboost (all features + pitch control),1,delta_log_loss,-0.0041,-0.0113,0.0036
+xgboost (all features + pitch control),2,log_loss,0.4213,0.3907,0.4538
+xgboost (all features + pitch control),2,roc_auc,0.7431,0.7029,0.7799
+xgboost (all features + pitch control),2,brier,0.1339,0.1224,0.146
+xgboost (all features + pitch control),2,delta_log_loss,0.0027,-0.0022,0.0082
+xgboost (all features + pitch control),3,log_loss,0.4604,0.4263,0.4938
+xgboost (all features + pitch control),3,roc_auc,0.7313,0.6991,0.7638
+xgboost (all features + pitch control),3,brier,0.1476,0.1355,0.16
+xgboost (all features + pitch control),3,delta_log_loss,0.0062,-0.0003,0.013
