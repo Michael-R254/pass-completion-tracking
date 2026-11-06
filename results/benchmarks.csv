@@ -1,23 +1,23 @@
 timestamp,stage,match_id,wall_s,peak_mb,process_peak_mb,rows_in,rows_out
-2026-11-05T15:13:31,load tracking -> long format,1,110.203,1874.3,5285.4,,3278389
-2026-11-05T15:13:31,"clean tracking (ID fixes, metres, flip, velocities)",1,0.419,364.0,5285.4,3278389,3278389
-2026-11-05T15:13:33,write tracking parquet,1,1.307,147.5,5285.4,3278389,
-2026-11-05T15:15:18,load tracking -> long format,2,102.123,1786.2,5285.4,,3188708
-2026-11-05T15:15:18,"clean tracking (ID fixes, metres, flip, velocities)",2,0.358,354.0,5285.4,3188708,3188708
-2026-11-05T15:15:19,write tracking parquet,2,1.102,143.5,5285.4,3188708,
-2026-11-05T15:18:43,load tracking -> long format,3,200.16,2315.4,6976.1,,3260178
-2026-11-05T15:18:43,"clean tracking (ID fixes, metres, flip, velocities)",3,0.384,361.9,6976.1,3260178,3260178
-2026-11-05T15:18:45,write tracking parquet,3,1.518,146.7,6976.1,3260178,
-2026-11-05T15:18:46,read tracking at pass frames,1,0.259,0.6,6976.1,1059,24333
-2026-11-05T15:18:46,build passes (read pass frames only),1,0.135,2.9,6976.1,26080,1059
-2026-11-05T15:18:46,read tracking at pass frames,2,0.127,0.1,6976.1,1180,27117
-2026-11-05T15:18:46,build passes (read pass frames only),2,0.135,3.7,6976.1,29054,1180
-2026-11-05T15:18:46,read tracking at pass frames,3,0.039,0.2,6976.1,1406,32338
-2026-11-05T15:18:47,build passes (read pass frames only),3,0.155,4.2,6976.1,35960,1406
-2026-11-05T15:18:47,read tracking at pass frames,1,0.009,0.0,6976.1,,23
-2026-11-05T15:18:47,read tracking at pass frames,1,0.008,0.0,6976.1,,23
-2026-11-05T15:18:47,read tracking at pass frames,3,0.008,0.0,6976.1,,23
-2026-11-05T15:18:47,read tracking at pass frames,1,0.027,0.1,6976.1,1049,24127
-2026-11-05T15:18:47,read tracking at pass frames,2,0.025,0.1,6976.1,1176,27025
-2026-11-05T15:18:47,read tracking at pass frames,3,0.028,0.2,6976.1,1406,32338
-2026-11-05T15:18:48,build features (all folds),,0.661,21.3,6976.1,87121,10893
+2026-11-06T14:14:59,load tracking -> long format,1,97.821,1874.4,5306.1,,3278389
+2026-11-06T14:14:59,"clean tracking (ID fixes, metres, flip, velocities)",1,0.318,364.0,5306.1,3278389,3278389
+2026-11-06T14:15:00,write tracking parquet,1,0.982,147.5,5306.1,3278389,
+2026-11-06T14:16:37,load tracking -> long format,2,94.297,1786.2,5306.1,,3188708
+2026-11-06T14:16:38,"clean tracking (ID fixes, metres, flip, velocities)",2,0.307,354.0,5306.1,3188708,3188708
+2026-11-06T14:16:39,write tracking parquet,2,0.915,143.5,5306.1,3188708,
+2026-11-06T14:19:33,load tracking -> long format,3,171.481,2315.4,6999.8,,3260178
+2026-11-06T14:19:34,"clean tracking (ID fixes, metres, flip, velocities)",3,0.328,361.9,6999.8,3260178,3260178
+2026-11-06T14:19:34,write tracking parquet,3,0.918,146.7,6999.8,3260178,
+2026-11-06T14:19:35,read tracking at pass frames,1,0.067,4.5,6999.8,1059,24333
+2026-11-06T14:19:35,build passes (read pass frames only),1,0.118,2.9,6999.8,26080,1059
+2026-11-06T14:19:35,read tracking at pass frames,2,0.03,0.1,6999.8,1180,27117
+2026-11-06T14:19:35,build passes (read pass frames only),2,0.125,3.7,6999.8,29054,1180
+2026-11-06T14:19:35,read tracking at pass frames,3,0.031,0.2,6999.8,1406,32338
+2026-11-06T14:19:35,build passes (read pass frames only),3,0.146,4.2,6999.8,35960,1406
+2026-11-06T14:19:35,read tracking at pass frames,1,0.007,0.0,6999.8,,23
+2026-11-06T14:19:35,read tracking at pass frames,1,0.007,0.0,6999.8,,23
+2026-11-06T14:19:35,read tracking at pass frames,3,0.008,0.0,6999.8,,23
+2026-11-06T14:19:35,read tracking at pass frames,1,0.028,0.1,6999.8,1049,24127
+2026-11-06T14:19:35,read tracking at pass frames,2,0.026,0.1,6999.8,1176,27025
+2026-11-06T14:19:35,read tracking at pass frames,3,0.026,0.2,6999.8,1406,32338
+2026-11-06T14:19:36,build features (all folds),,0.552,21.3,6999.8,87121,10893

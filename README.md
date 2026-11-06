@@ -115,19 +115,19 @@ Tracking is the biggest data in football: here, **9,727,275 position rows** for 
 - features read **only the pass start frames** from Parquet: 167,347 rows, 1.7% of the table;
 - every stage logs wall time and peak memory to `results/benchmarks.csv`.
 
-Measured on a Windows laptop during the last full `--rebuild` run, then projected to 380 matches (`results/step7_scaling.csv`; projection = measured × 380 / 3):
+Measured on a Windows laptop during a fresh-clone `--rebuild` run (6 Nov 2026), then projected to 380 matches (`results/step7_scaling.csv`; projection = measured × 380 / 3):
 
 | Stage | Rows out (3 matches) | Wall time (3 matches) | Peak traced memory | Projected season |
 |---|---|---|---|---|
-| Load raw tracking → long format (kloppy) | 9,727,275 | 412.5 s | 2,315 MB | 871 min |
-| Clean (ID fixes, metres, flip, velocities) | 9,727,275 | 1.2 s | 364 MB | 2.5 min |
-| Write Parquet | | 3.9 s | 148 MB | 8.3 min |
-| Read tracking at pass frames only | 167,347 | 0.5 s | 0.6 MB | 1.1 min |
-| Build pass table | 3,645 | 0.4 s | 4.2 MB | 0.9 min |
-| Build features (all folds) | 10,893 | 0.7 s | 21 MB | 1.4 min |
-| **All stages** | | **419.2 s** | **2,315 MB** | **885 min** |
+| Load raw tracking → long format (kloppy) | 9,727,275 | 363.6 s | 2,315 MB | 768 min |
+| Clean (ID fixes, metres, flip, velocities) | 9,727,275 | 1.0 s | 364 MB | 2.0 min |
+| Write Parquet | | 2.8 s | 148 MB | 5.9 min |
+| Read tracking at pass frames only | 167,347 | 0.2 s | 4.5 MB | 0.5 min |
+| Build pass table | 3,645 | 0.4 s | 4.2 MB | 0.8 min |
+| Build features (all folds) | 10,893 | 0.6 s | 21 MB | 1.2 min |
+| **All stages** | | **368.5 s** | **2,315 MB** | **778 min** |
 
-- **A full season is an estimated ~15 hours on one laptop core, and 98% of that is parsing the raw provider files** (871 of 885 min). Everything after the data is in Parquet, from cleaning to features, projects to about 14 minutes per season. Matches are independent, so loading parallelises across cores or machines, and in a club it happens once per match as data arrives.
+- **A full season is an estimated ~13 hours on one laptop core, and 99% of that is parsing the raw provider files** (768 of 778 min). Everything after the data is in Parquet, from cleaning to features, projects to about 10 minutes per season. Matches are independent, so loading parallelises across cores or machines, and in a club it happens once per match as data arrives.
 - **Memory stays at the single-match peak.** Peak traced memory is 2.3 GB, and the operating system's process peak is 7.0 GB, reached while kloppy parses game 3's EPTS file. The traced figure comes from `tracemalloc`, which can't see memory allocated inside Arrow's C++ pool, so Parquet stages are lower bounds. The process figure covers everything.
 - **Storage:** about 57 MB of Parquet per match (`results/tracking_files.csv`), so about 21.6 GB per season.
 - This is an estimate: it assumes season matches look like these three.
@@ -147,4 +147,6 @@ uv run python scripts/download_data.py
 uv run python scripts/run_pipeline.py --rebuild
 uv run pytest
 ```
+Tested from a fresh clone (new environment, fresh download, `--rebuild`): every results table reproduced byte for byte.
+
 `--rebuild` rebuilds the tracking Parquet and rewrites `results/benchmarks.csv`. Without it, existing Parquet files are reused and timings go to `results/logs/`. Notebooks `notebooks/00`-`05` show each step's results.

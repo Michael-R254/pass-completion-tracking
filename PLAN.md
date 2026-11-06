@@ -79,8 +79,8 @@ These are the four places where a quick version of this project would give misle
 - [x] Sections: question, data and source acknowledgement, label definition, split, results table, pitch plot, calibration plot, SHAP, **scaling**, limitations, how to reproduce
 - [x] Scaling section: table from `benchmarks.csv` (rows, time, peak memory per stage) and a projected cost for a 380-match season, stated as an estimate
 - [x] Limitations: 3 matches, anonymised teams, intended-target is an approximation, event and tracking sync error, no pitch control (unless stretch is done)
-- [ ] `make all` or a single `run_pipeline.py` reproduces everything from a clean clone
-- [ ] Fresh-clone test: delete the env, reinstall, run end to end
+- [x] `make all` or a single `run_pipeline.py` reproduces everything from a clean clone
+- [x] Fresh-clone test: delete the env, reinstall, run end to end
 
 ### Stretch: pitch control (only if steps 0–7 are done)
 - [ ] Implement Spearman-style pitch control following Laurie Shaw's Friends of Tracking tutorial (credit it)
