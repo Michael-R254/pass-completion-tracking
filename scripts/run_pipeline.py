@@ -20,6 +20,8 @@ Built up step by step. Currently (PLAN step 1):
      -> results/step7_scaling.csv
   9. stretch: pitch control at the intended target (features.target_pitch_control), as an extra model
      -> rows in metrics_per_fold.csv, results/stretch_pitch_control_ci.csv
+ 10. target mixture: score each pass toward all 10 teammates, weighted by P(intended target)
+     -> rows in metrics_per_fold.csv, results/target_mixture_ci.csv, target_mixture_on_surprises.csv
 
 Every run logs to results/logs/pipeline_<time>.log (git-ignored). On a crash the full
 traceback and the process's peak memory go into that log before the error is re-raised.
@@ -43,9 +45,9 @@ from passmodel.clean import (build_passes, clean_tracking, drop_bad_passes, home
                              label_passes, pass_summary, set_piece_counts, to_metres)
 from passmodel.evaluate import (ablation_table, bootstrap_ci, calibration_table, completion_above_expected,
                                 fold_metrics, held_out_passes, shap_importance, shap_values, surprising_passes)
-from passmodel.features import build_features, read_pass_frames, target_agreement
+from passmodel.features import build_features, build_target_mixture_features, read_pass_frames, target_agreement
 from passmodel.load import MATCH_IDS, load_events, load_tracking_long, read_frames, tracking_path, write_tracking
-from passmodel.models import MODELS, ablation, inner_cv_sensitivity, run_lomo
+from passmodel.models import MODELS, ablation, inner_cv_sensitivity, run_lomo, run_lomo_target_mixture
 from passmodel import profiling
 from passmodel.profiling import BENCHMARK_CSV, process_peak_mb, season_projection
 from passmodel.viz import pass_story_title, plot_calibration, plot_passes, plot_sanity_passes, plot_shap_summary
@@ -158,6 +160,25 @@ def run_football(features: pd.DataFrame, predictions: pd.DataFrame, passes: pd.D
     plt.close(plot_passes(rows, read_frames, titles=titles, path=FIGURES / "pass_stories.png"))
 
 
+def run_target_mixture_check(predictions: pd.DataFrame) -> None:
+    """Does scoring every teammate (weighted by P(target)) beat betting on one intended target?
+
+    Paired bootstrap vs the headline, plus what it predicts for the headline model's 10 riskiest completed
+    and 10 safest failed passes (the failure mode it is meant to fix).
+    """
+    mix = "xgboost (target mixture)"
+    ci = bootstrap_ci(predictions[predictions["model"].isin([HEADLINE, mix])], baseline=HEADLINE)
+    save(ci[ci["model"] == mix], "target_mixture_ci")
+    wide = predictions[predictions["model"].isin([HEADLINE, mix])].pivot_table(
+        index=["match_id", "event_id"], columns="model", values="p_complete")
+    rows = []
+    for kind in ("riskiest_completed", "safest_failed"):
+        keys = pd.read_csv(RESULTS / f"step6_{kind}.csv")[["match_id", "event_id"]]
+        w = wide.loc[list(zip(keys["match_id"], keys["event_id"]))]
+        rows.append({"passes": kind, "n": len(w), "headline_mean_p": w[HEADLINE].mean(), "mixture_mean_p": w[mix].mean()})
+    save(pd.DataFrame(rows).round(3), "target_mixture_on_surprises")
+
+
 def main() -> None:
     rebuild = "--rebuild" in sys.argv
     if rebuild:  # a full rebuild starts a fresh benchmarks file, so every stage is timed in one run
@@ -174,7 +195,10 @@ def main() -> None:
 
     passes = build_pass_table(labelled)
     plot_sanity_passes(passes, read_frames, n=3, seed=0, path=RESULTS / "figures" / "sanity_3_passes.png")
-    features = build_features(passes, read_pass_frames(passes))
+    frames = read_pass_frames(passes)
+    features = build_features(passes, frames)
+    mixture = build_target_mixture_features(passes, frames)
+    del frames
     features.to_parquet(FEATURES_PATH, index=False)
     agreement = target_agreement(features)
     agreement.to_csv(RESULTS / "d3_target_agreement.csv")
@@ -186,7 +210,7 @@ def main() -> None:
     chosen = inner_scores[inner_scores["chosen"]].to_string(index=False)
     log.info(f"\nd4 inner CV, chosen setting per fold\n{chosen}")
     predictions = pd.concat([run_lomo(features, name, factory, cols) for name, (factory, cols) in MODELS.items()]
-                            + [tuned_predictions], ignore_index=True)
+                            + [tuned_predictions, run_lomo_target_mixture(mixture)], ignore_index=True)
     predictions.to_csv(RESULTS / "predictions.csv", index=False)
     metrics = fold_metrics(predictions)
     metrics.to_csv(RESULTS / "metrics_per_fold.csv", index=False)
@@ -197,6 +221,7 @@ def main() -> None:
     pc = predictions[predictions["model"].isin([HEADLINE, "xgboost (all features + pitch control)"])]
     ci = bootstrap_ci(pc, baseline=HEADLINE)
     save(ci[ci["model"] != HEADLINE], "stretch_pitch_control_ci")
+    run_target_mixture_check(predictions)
     # Always from the committed benchmarks.csv: only a --rebuild run times every stage in one go.
     save(season_projection(BENCHMARK_CSV, RESULTS / "tracking_files.csv"), "step7_scaling", index=True)
     log.info(f"done. process peak memory {process_peak_mb():.0f} MB")

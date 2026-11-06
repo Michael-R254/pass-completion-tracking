@@ -81,6 +81,27 @@ def run_lomo(features: pd.DataFrame, name: str, factory, columns: list[str]) -> 
     return pd.concat(out, ignore_index=True)
 
 
+def run_lomo_target_mixture(mixture: pd.DataFrame, name: str = "xgboost (target mixture)") -> pd.DataFrame:
+    """LOMO XGBoost (D4 defaults) that doesn't commit to one intended target.
+
+    mixture: build_target_mixture_features output, one row per (fold, pass, teammate) with weight q.
+    Train: every (pass, teammate) row of the training matches, sample weight q (each pass totals weight 1).
+    Predict: P(complete) = sum_j q_j * P(complete | aimed at j) for each test pass.
+    Same output schema as run_lomo.
+    """
+    out = []
+    for fold in MATCH_IDS:
+        f = mixture[(mixture["fold"] == fold) & ~mixture["is_set_piece"]]
+        train, test = f[f["match_id"] != fold], f[f["match_id"] == fold]
+        model = xgb_model().fit(train[FEATURES].astype(float), train["completed"], sample_weight=train["weight"])
+        test = test.assign(wp=test["weight"] * model.predict_proba(test[FEATURES].astype(float))[:, 1])
+        g = test.groupby(["match_id", "event_id"], sort=False).agg(
+            completed=("completed", "first"), wp=("wp", "sum"), w=("weight", "sum")).reset_index()
+        out.append(pd.DataFrame({"model": name, "fold": fold, "match_id": g["match_id"], "event_id": g["event_id"],
+                                 "completed": g["completed"], "p_complete": g["wp"] / g["w"]}))
+    return pd.concat(out, ignore_index=True)
+
+
 def ablation(features: pd.DataFrame) -> pd.DataFrame:
     """Leave-one-group-out ablation: XGBoost (D4 defaults) refitted without each feature group, LOMO.
 

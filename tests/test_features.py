@@ -5,7 +5,8 @@ import pandas as pd
 import pytest
 
 from passmodel.clean import add_velocities
-from passmodel.features import (FEATURES, PITCH_CONTROL, angle_deg, pitch_control, build_features, candidate_features, fold_targets,
+from passmodel.features import (FEATURES, PITCH_CONTROL, angle_deg, pitch_control, build_features,
+                                build_target_mixture_features, candidate_features, fold_targets,
                                 pass_frame_arrays, point_to_segment, read_pass_frames)
 from passmodel.load import REPO_ROOT
 
@@ -71,3 +72,12 @@ def test_targets_never_learned_from_own_match(test_match):
         scrambled.loc[rows, "receiver"] = scrambled.loc[rows, "receiver"].sample(frac=1, random_state=1).to_numpy()
         changed = fold_targets(scrambled, a, X, test_match)
         assert base.loc[rows.to_numpy(), "target_player"].equals(changed.loc[rows.to_numpy(), "target_player"])
+
+
+@needs_data
+def test_target_mixture_weights_sum_to_one():
+    """Every pass, in every fold, spreads exactly weight 1 over its teammates."""
+    p = pd.read_parquet(PASSES).groupby("match_id").head(150).reset_index(drop=True)
+    m = build_target_mixture_features(p, read_pass_frames(p))
+    sums = m.groupby(["fold", "match_id", "event_id"])["weight"].sum()
+    assert len(sums) == 3 * len(p) and np.allclose(sums, 1)

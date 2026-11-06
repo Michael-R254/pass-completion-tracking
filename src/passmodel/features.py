@@ -146,8 +146,10 @@ def predict_target(model, X: np.ndarray, a: dict, rows: np.ndarray) -> pd.DataFr
     slot = scores.argmax(axis=1)
     soft = np.exp(scores - scores.max(axis=1, keepdims=True))
     i, r = np.arange(len(slot)), np.flatnonzero(rows)
-    return pd.DataFrame({"target_player": a["mate_id"][r, slot], "target_slot": slot,
-                         "target_confidence": soft[i, slot] / soft.sum(axis=1)}, index=r)
+    q = soft / soft.sum(axis=1, keepdims=True)  # P(teammate j is the intended target), sums to 1 per pass
+    out = pd.DataFrame({"target_player": a["mate_id"][r, slot], "target_slot": slot,
+                        "target_confidence": q[i, slot]}, index=r)
+    return out.join(pd.DataFrame(q, columns=[f"q_{j}" for j in range(N_MATES)], index=r))
 
 
 def fold_targets(passes: pd.DataFrame, a: dict, X: np.ndarray, test_match: int) -> pd.DataFrame:
@@ -332,6 +334,32 @@ def build_features(passes: pd.DataFrame, frames: pd.DataFrame) -> pd.DataFrame:
         targets = fold_targets(p, a, X, test_match)
         feats = pass_features(p, a, targets)
         out.append(pd.concat([p[keep], targets[["target_player"]], feats], axis=1).assign(fold=test_match))
+    return pd.concat(out, ignore_index=True)
+
+
+@benchmark("build target-mixture features (all folds x 10 teammates)")
+def build_target_mixture_features(passes: pd.DataFrame, frames: pd.DataFrame) -> pd.DataFrame:
+    """Features for every (fold, pass, teammate): the pass scored as if aimed at each of the 10 teammates.
+
+    Instead of betting on one intended target, keep all of them with weight q = P(teammate is the target)
+    from the same cross-fitted target models as build_features (so no pass's weights were learned from its
+    own match). The completion model is trained on these rows weighted by q, and predicts
+    P(complete) = sum_j q_j * P(complete | aimed at j)  (models.run_lomo_target_mixture).
+    The loop is over the 10 teammate slots; each iteration is vectorised over all passes.
+    Rows with q = 0 (teammate not tracked) are dropped.
+    """
+    p = passes.reset_index(drop=True)
+    a = pass_frame_arrays(p, frames)
+    X = candidate_features(a)
+    keep = ["match_id", "event_id", "completed", "is_set_piece"]
+    out = []
+    for test_match in MATCH_IDS:
+        targets = fold_targets(p, a, X, test_match)
+        for j in range(N_MATES):
+            q = targets[f"q_{j}"].to_numpy()
+            slot_j = pd.DataFrame({"target_slot": j, "target_confidence": q}, index=targets.index)
+            feats = pass_features(p, a, slot_j)
+            out.append(pd.concat([p[keep], feats], axis=1).assign(fold=test_match, slot=j, weight=q)[q > 0])
     return pd.concat(out, ignore_index=True)
 
 
