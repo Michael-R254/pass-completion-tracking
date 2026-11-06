@@ -76,9 +76,9 @@ These are the four places where a quick version of this project would give misle
 - [x] Optional: per-player "completion above expected" with an explicit caveat about sample size
 
 ### 7. README and polish (Sun evening, ~1.5 hrs)
-- [ ] Sections: question, data and source acknowledgement, label definition, split, results table, pitch plot, calibration plot, SHAP, **scaling**, limitations, how to reproduce
-- [ ] Scaling section: table from `benchmarks.csv` (rows, time, peak memory per stage) and a projected cost for a 380-match season, stated as an estimate
-- [ ] Limitations: 3 matches, anonymised teams, intended-target is an approximation, event and tracking sync error, no pitch control (unless stretch is done)
+- [x] Sections: question, data and source acknowledgement, label definition, split, results table, pitch plot, calibration plot, SHAP, **scaling**, limitations, how to reproduce
+- [x] Scaling section: table from `benchmarks.csv` (rows, time, peak memory per stage) and a projected cost for a 380-match season, stated as an estimate
+- [x] Limitations: 3 matches, anonymised teams, intended-target is an approximation, event and tracking sync error, no pitch control (unless stretch is done)
 - [ ] `make all` or a single `run_pipeline.py` reproduces everything from a clean clone
 - [ ] Fresh-clone test: delete the env, reinstall, run end to end
 

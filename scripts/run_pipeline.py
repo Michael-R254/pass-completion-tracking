@@ -16,6 +16,8 @@ Built up step by step. Currently (PLAN step 1):
   7. football (PLAN step 6): surprising passes, player completion above expected, annotated pitch plot
      -> results/step6_riskiest_completed.csv, step6_safest_failed.csv, step6_completion_above_expected.csv,
         figures/pass_stories.png
+  8. scaling (PLAN step 7): results/benchmarks.csv (from the last --rebuild run) projected to a 380-match season
+     -> results/step7_scaling.csv
 
 Every run logs to results/logs/pipeline_<time>.log (git-ignored). On a crash the full
 traceback and the process's peak memory go into that log before the error is re-raised.
@@ -43,7 +45,7 @@ from passmodel.features import build_features, read_pass_frames, target_agreemen
 from passmodel.load import MATCH_IDS, load_events, load_tracking_long, read_frames, tracking_path, write_tracking
 from passmodel.models import MODELS, ablation, inner_cv_sensitivity, run_lomo
 from passmodel import profiling
-from passmodel.profiling import BENCHMARK_CSV, process_peak_mb
+from passmodel.profiling import BENCHMARK_CSV, process_peak_mb, season_projection
 from passmodel.viz import pass_story_title, plot_calibration, plot_passes, plot_sanity_passes, plot_shap_summary
 
 ROOT = Path(__file__).resolve().parents[1]

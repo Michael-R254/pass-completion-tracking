@@ -119,3 +119,27 @@ def _append_row(row: dict) -> None:
         if new_file:
             writer.writeheader()
         writer.writerow(row)
+
+
+def season_projection(benchmarks_csv: Path, tracking_files_csv: Path, n_measured: int = 3,
+                      n_season: int = 380):
+    """Scale the measured per-stage cost of `n_measured` matches up to a season of `n_season` matches.
+
+    Every stage runs one match at a time (or is linear in passes), so season time = measured time x 380 / 3,
+    and peak memory stays at the single-match peak rather than growing with the season.
+    An estimate: assumes season matches look like these three (similar length, ~23 tracked objects).
+    Returns one row per stage plus a storage row for the tracking Parquet.
+    """
+    import pandas as pd
+
+    b = pd.read_csv(benchmarks_csv)
+    t = b.groupby("stage", sort=False).agg(rows_out=("rows_out", "sum"), wall_s=("wall_s", "sum"),
+                                           peak_mb=("peak_mb", "max"), process_peak_mb=("process_peak_mb", "max"))
+    t["season_wall_min"] = t["wall_s"] * n_season / n_measured / 60
+    total = t[["wall_s", "season_wall_min"]].sum().to_frame("all stages").T
+    total[["peak_mb", "process_peak_mb"]] = t[["peak_mb", "process_peak_mb"]].max().to_numpy()
+    files = pd.read_csv(tracking_files_csv)
+    storage = pd.DataFrame({"rows_out": [files["rows"].sum()],
+                            "season_parquet_gb": [files["parquet_mb"].sum() * n_season / n_measured / 1000]},
+                           index=["tracking Parquet on disk"])
+    return pd.concat([t, total, storage]).rename_axis("stage").round(1)
