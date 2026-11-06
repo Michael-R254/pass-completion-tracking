@@ -12,7 +12,7 @@ from xgboost import DMatrix
 
 from passmodel.features import FEATURES
 from passmodel.load import MATCH_IDS
-from passmodel.models import fold_split, xgb_model
+from passmodel.models import fit_target_mixture, fold_split
 
 SEED = 0
 EPS = np.finfo(float).eps  # same clipping as sklearn's log_loss, so log(0) never happens
@@ -98,10 +98,12 @@ def calibration_table(predictions: pd.DataFrame, model: str, n_bins: int = 10) -
 
 # ---------------------------------------------------------------- SHAP
 
-def shap_values(features: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """SHAP values of the headline XGBoost (D4 defaults) on each held-out match.
+def shap_values(features: pd.DataFrame, mixture: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """SHAP values of the headline target-mixture XGBoost on each held-out match.
 
-    Refits the same seeded model as models.run_lomo per fold, then asks XGBoost for exact TreeSHAP
+    Refits the same seeded model as models.run_lomo_target_mixture per fold, and explains each test pass
+    aimed at its MOST LIKELY target (one row per pass, the features.parquet row), because a SHAP value of
+    the weighted sum over 10 teammates has no single feature row to attach to. XGBoost gives exact TreeSHAP
     contributions (pred_contribs=True; the same algorithm as shap.TreeExplainer, without its
     version-compatibility issues). Units: log-odds of completion; per pass, the contributions plus
     the bias sum to the model's raw prediction.
@@ -109,9 +111,8 @@ def shap_values(features: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     values, X_all = [], []
     for fold in MATCH_IDS:
-        train, test = fold_split(features, fold)
-        model = xgb_model().fit(train[FEATURES].astype(float), train["completed"])
-        X = test[FEATURES].astype(float)
+        model, _ = fit_target_mixture(mixture, fold)
+        X = fold_split(features, fold)[1][FEATURES].astype(float)
         contribs = model.get_booster().predict(DMatrix(X), pred_contribs=True)[:, :-1]  # last column = bias
         values.append(pd.DataFrame(contribs, columns=FEATURES, index=X.index))
         X_all.append(X)

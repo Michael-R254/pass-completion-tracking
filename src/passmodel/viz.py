@@ -45,7 +45,7 @@ def plot_pass_frame(pass_row, frame, ax=None, title=None):
         start, target = (pass_row["start_x"], pass_row["start_y"]), (pass_row["target_x"], pass_row["target_y"])
         pitch.lines(*start, *target, ax=ax, color=ATTACK_COLOUR, lw=3, alpha=0.6, zorder=1)
         pitch.scatter(*target, ax=ax, s=420, facecolors="none", edgecolors=ATTACK_COLOUR, linewidths=3, zorder=4)
-        pitch.annotate("intended target", (target[0], target[1] + 3), ax=ax, ha="center", fontsize=8,
+        pitch.annotate("most likely target", (target[0], target[1] + 3), ax=ax, ha="center", fontsize=8,
                        color=ATTACK_COLOUR, zorder=6)
     outcome = "completed" if pass_row["completed"] else "failed"
     ax.set_title(title or f"Game {pass_row['match_id']}, frame {pass_row['start_frame']}: {pass_row['passer']} "
@@ -74,7 +74,7 @@ def pass_story_title(row) -> str:
     """Coach-readable title: who passed, when, what the model said, what happened."""
     outcome = "came off" if row["completed"] else "was lost"
     return (f"Game {row['match_id']}, ~{row['approx_minute']:.0f}': {row['passer']} to {row['target_player']} "
-            f"(model's intended target)\nModel: {row['p_complete']:.0%} chance of completion. It {outcome}. "
+            f"(most likely target)\nModel: {row['p_complete']:.0%} chance of completion. It {outcome}. "
             f"Blue attacks left to right; arrows = 1 s of running")
 
 

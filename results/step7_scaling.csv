@@ -1,9 +1,10 @@
 stage,rows_out,wall_s,peak_mb,process_peak_mb,season_wall_min,season_parquet_gb
-load tracking -> long format,9727275.0,363.6,2315.4,6999.8,767.6,
-"clean tracking (ID fixes, metres, flip, velocities)",9727275.0,1.0,364.0,6999.8,2.0,
-write tracking parquet,0.0,2.8,147.5,6999.8,5.9,
-read tracking at pass frames,167347.0,0.2,4.5,6999.8,0.5,
-build passes (read pass frames only),3645.0,0.4,4.2,6999.8,0.8,
-build features (all folds),10893.0,0.6,21.3,6999.8,1.2,
-all stages,,368.5,2315.4,6999.8,778.0,
+load tracking -> long format,9727275.0,374.3,2315.4,6982.2,790.1,
+"clean tracking (ID fixes, metres, flip, velocities)",9727275.0,1.0,364.0,6982.2,2.1,
+write tracking parquet,0.0,2.9,147.5,6982.2,6.1,
+read tracking at pass frames,167393.0,0.2,0.6,6982.2,0.5,
+build passes (read pass frames only),3645.0,0.4,4.2,6982.2,0.9,
+build features (all folds),10893.0,1.6,21.3,6982.2,3.4,
+build target-mixture features (all folds x 10 teammates),108930.0,10.9,53.8,6982.2,23.0,
+all stages,,391.3,2315.4,6982.2,826.0,
 tracking Parquet on disk,9727275.0,,,,,21.6

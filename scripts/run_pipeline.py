@@ -57,7 +57,8 @@ RESULTS = ROOT / "results"
 PASSES_PATH = ROOT / "data" / "processed" / "passes.parquet"
 FEATURES_PATH = ROOT / "data" / "processed" / "features.parquet"
 FIGURES = RESULTS / "figures"
-HEADLINE = "xgboost (all features)"
+HEADLINE = "xgboost (target mixture)"  # D5: replaced the single-target model on held-out log loss
+SINGLE = "xgboost (single target)"
 log = logging.getLogger("pipeline")
 
 
@@ -125,17 +126,17 @@ def save(table: pd.DataFrame, name: str, index: bool = False) -> None:
     log.info(f"\n{name}\n{table.to_string(index=index)}")
 
 
-def run_evaluation(features: pd.DataFrame, predictions: pd.DataFrame) -> None:
-    """PLAN step 5: everything is computed on held-out (test-match) predictions only."""
-    main_models = predictions[predictions["model"].isin(MODELS)]
+def run_evaluation(features: pd.DataFrame, mixture: pd.DataFrame, predictions: pd.DataFrame) -> None:
+    """PLAN step 5, for the headline model: everything is computed on held-out (test-match) predictions only."""
+    main_models = predictions[predictions["model"].isin([*MODELS, HEADLINE])]
     save(bootstrap_ci(main_models, baseline="logistic (pass length)"), "step5_bootstrap_ci")
     calibration = calibration_table(predictions, HEADLINE)
     save(calibration, "step5_calibration")
     plt.close(plot_calibration(calibration, path=FIGURES / "calibration.png"))
-    values, X = shap_values(features)
+    values, X = shap_values(features, mixture)
     save(shap_importance(values), "step5_shap_importance", index=True)
     plt.close(plot_shap_summary(values, X, path=FIGURES / "shap_summary.png"))
-    ablated = pd.concat([ablation(features), predictions[predictions["model"] == HEADLINE]], ignore_index=True)
+    ablated = pd.concat([ablation(mixture), predictions[predictions["model"] == HEADLINE]], ignore_index=True)
     save(ablation_table(ablated, full_model=HEADLINE), "step5_ablation", index=True)
     ci = bootstrap_ci(ablated, baseline=HEADLINE)
     save(ci[(ci["metric"] == "delta_log_loss") & (ci["model"] != HEADLINE)], "step5_ablation_ci")
@@ -160,22 +161,24 @@ def run_football(features: pd.DataFrame, predictions: pd.DataFrame, passes: pd.D
     plt.close(plot_passes(rows, read_frames, titles=titles, path=FIGURES / "pass_stories.png"))
 
 
-def run_target_mixture_check(predictions: pd.DataFrame) -> None:
-    """Does scoring every teammate (weighted by P(target)) beat betting on one intended target?
+def run_target_mixture_check(features: pd.DataFrame, predictions: pd.DataFrame) -> None:
+    """Did scoring every teammate (weighted by P(target)) beat betting on one intended target?
 
-    Paired bootstrap vs the headline, plus what it predicts for the headline model's 10 riskiest completed
-    and 10 safest failed passes (the failure mode it is meant to fix).
+    Paired bootstrap of the target mixture (headline) vs the single-target model, plus what each predicts
+    for the SINGLE-TARGET model's 10 riskiest completed and 10 safest failed passes: the failure mode the
+    mixture was built to fix.
     """
-    mix = "xgboost (target mixture)"
-    ci = bootstrap_ci(predictions[predictions["model"].isin([HEADLINE, mix])], baseline=HEADLINE)
-    save(ci[ci["model"] == mix], "target_mixture_ci")
-    wide = predictions[predictions["model"].isin([HEADLINE, mix])].pivot_table(
-        index=["match_id", "event_id"], columns="model", values="p_complete")
+    two = predictions[predictions["model"].isin([SINGLE, HEADLINE])]
+    ci = bootstrap_ci(two, baseline=SINGLE)
+    save(ci[ci["model"] == HEADLINE], "target_mixture_ci")
+    wide = two.pivot_table(index=["match_id", "event_id"], columns="model", values="p_complete")
     rows = []
-    for kind in ("riskiest_completed", "safest_failed"):
-        keys = pd.read_csv(RESULTS / f"step6_{kind}.csv")[["match_id", "event_id"]]
-        w = wide.loc[list(zip(keys["match_id"], keys["event_id"]))]
-        rows.append({"passes": kind, "n": len(w), "headline_mean_p": w[HEADLINE].mean(), "mixture_mean_p": w[mix].mean()})
+    for kind, table in zip(("riskiest completed", "safest failed"),
+                           surprising_passes(held_out_passes(predictions, features, SINGLE))):
+        w = wide.loc[list(zip(table["match_id"], table["event_id"]))]
+        rows.append({"passes": f"single-target model's 10 {kind}", "single_target_mean_p": w[SINGLE].mean(),
+                     "target_mixture_mean_p": w[HEADLINE].mean(),
+                     "target_was_receiver": int((table["target_player"] == table["receiver"]).sum())})
     save(pd.DataFrame(rows).round(3), "target_mixture_on_surprises")
 
 
@@ -215,13 +218,13 @@ def main() -> None:
     metrics = fold_metrics(predictions)
     metrics.to_csv(RESULTS / "metrics_per_fold.csv", index=False)
     log.info(f"\nmetrics_per_fold\n{metrics.to_string(index=False)}")
-    run_evaluation(features, predictions)
+    run_evaluation(features, mixture, predictions)
     run_football(features, predictions, passes)
-    # Stretch: does pitch control beat the headline model? Paired bootstrap delta vs the headline.
-    pc = predictions[predictions["model"].isin([HEADLINE, "xgboost (all features + pitch control)"])]
-    ci = bootstrap_ci(pc, baseline=HEADLINE)
-    save(ci[ci["model"] != HEADLINE], "stretch_pitch_control_ci")
-    run_target_mixture_check(predictions)
+    # Stretch: did pitch control beat the single-target model it was tested on? Paired bootstrap delta.
+    pc = predictions[predictions["model"].isin([SINGLE, "xgboost (single target + pitch control)"])]
+    ci = bootstrap_ci(pc, baseline=SINGLE)
+    save(ci[ci["model"] != SINGLE], "stretch_pitch_control_ci")
+    run_target_mixture_check(features, predictions)
     # Always from the committed benchmarks.csv: only a --rebuild run times every stage in one go.
     save(season_projection(BENCHMARK_CSV, RESULTS / "tracking_files.csv"), "step7_scaling", index=True)
     log.info(f"done. process peak memory {process_peak_mb():.0f} MB")
