@@ -64,11 +64,11 @@ These are the four places where a quick version of this project would give misle
 - [x] Fixed random seeds; save fold predictions to `results/`
 
 ### 5. Honest evaluation (Sun midday, ~2 hrs)
-- [ ] Table: log loss, ROC-AUC, Brier score per fold and mean, for constant / logistic / XGBoost
-- [ ] Bootstrap confidence intervals on the test fold metrics (resample passes)
-- [ ] Calibration plot (reliability curve, ~10 quantile bins, with bin counts shown)
-- [ ] SHAP summary plot + one-sentence football reading of the top 3 features
-- [ ] Ablation: does each feature group (geometry / pressure / lane / speed) earn its place?
+- [x] Table: log loss, ROC-AUC, Brier score per fold and mean, for constant / logistic / XGBoost
+- [x] Bootstrap confidence intervals on the test fold metrics (resample passes)
+- [x] Calibration plot (reliability curve, ~10 quantile bins, with bin counts shown)
+- [x] SHAP summary plot + one-sentence football reading of the top 3 features
+- [x] Ablation: does each feature group (geometry / pressure / lane / speed) earn its place?
 
 ### 6. Show it as football (Sun afternoon, ~2 hrs)
 - [ ] mplsoccer plot of one real pass: all players, velocity arrows, pass line, intended target highlighted, predicted probability in the title

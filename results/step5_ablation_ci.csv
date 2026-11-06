@@ -1,0 +1,22 @@
+model,fold,metric,estimate,ci_low,ci_high
+without event,1,delta_log_loss,0.006,-0.0026,0.0148
+without geometry,1,delta_log_loss,0.0048,-0.0039,0.0138
+without lane,1,delta_log_loss,-0.0027,-0.0127,0.0074
+without location,1,delta_log_loss,0.0174,0.0012,0.0338
+without pressure,1,delta_log_loss,0.0011,-0.0085,0.0113
+without speed,1,delta_log_loss,-0.0006,-0.0128,0.0112
+without target,1,delta_log_loss,-0.0036,-0.0154,0.0076
+without event,2,delta_log_loss,0.0067,-0.0014,0.0148
+without geometry,2,delta_log_loss,0.0096,0.0022,0.0167
+without lane,2,delta_log_loss,0.0066,0.0006,0.0131
+without location,2,delta_log_loss,0.0258,0.0132,0.0384
+without pressure,2,delta_log_loss,0.012,0.0054,0.0183
+without speed,2,delta_log_loss,0.0058,-0.0049,0.0155
+without target,2,delta_log_loss,0.0068,-0.0021,0.0158
+without event,3,delta_log_loss,0.0081,0.0003,0.016
+without geometry,3,delta_log_loss,0.0008,-0.0065,0.0078
+without lane,3,delta_log_loss,0.0037,-0.0025,0.0096
+without location,3,delta_log_loss,0.0124,-0.001,0.0267
+without pressure,3,delta_log_loss,0.0096,0.0035,0.0165
+without speed,3,delta_log_loss,0.0075,-0.0019,0.0171
+without target,3,delta_log_loss,0.0119,0.0016,0.0224

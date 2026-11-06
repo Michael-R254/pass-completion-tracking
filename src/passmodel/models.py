@@ -14,7 +14,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import log_loss
 from xgboost import XGBClassifier
 
-from passmodel.features import FEATURES
+from passmodel.features import FEATURE_GROUPS, FEATURES
 from passmodel.load import MATCH_IDS
 
 SEED = 0
@@ -76,6 +76,17 @@ def run_lomo(features: pd.DataFrame, name: str, factory, columns: list[str]) -> 
             "p_complete": model.predict_proba(test[columns].astype(float))[:, 1],
         }))
     return pd.concat(out, ignore_index=True)
+
+
+def ablation(features: pd.DataFrame) -> pd.DataFrame:
+    """Leave-one-group-out ablation: XGBoost (D4 defaults) refitted without each feature group, LOMO.
+
+    Answers "does each group earn its place?" (CLAUDE.md rule 6) on held-out log loss.
+    Reported only: the headline model keeps all features, because choosing features from these
+    test-fold scores would be tuning on the test matches (rule 2).
+    """
+    return pd.concat([run_lomo(features, f"without {group}", xgb_model, [f for f in FEATURES if f not in cols])
+                      for group, cols in FEATURE_GROUPS.items()], ignore_index=True)
 
 
 def inner_cv_sensitivity(features: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:

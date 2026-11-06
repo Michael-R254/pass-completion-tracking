@@ -10,6 +10,9 @@ Built up step by step. Currently (PLAN step 1):
   5. models (PLAN steps 3-4): leave-one-match-out, open play
      -> results/predictions.csv (one row per model x test pass), results/metrics_per_fold.csv,
         results/d4_inner_cv.csv (sensitivity check: inner-CV grid scores and the setting chosen per fold)
+  6. evaluation (PLAN step 5): bootstrap CIs, calibration, SHAP, feature-group ablation
+     -> results/step5_bootstrap_ci.csv, step5_calibration.csv, step5_shap_importance.csv,
+        step5_ablation.csv, step5_ablation_ci.csv, figures/calibration.png, figures/shap_summary.png
 
 Every run logs to results/logs/pipeline_<time>.log (git-ignored). On a crash the full
 traceback and the process's peak memory go into that log before the error is re-raised.
@@ -26,22 +29,26 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")  # write figures to files; no window needed
+import matplotlib.pyplot as plt
 import pandas as pd
 
 from passmodel.clean import (build_passes, clean_tracking, drop_bad_passes, home_attack_sign, label_counts,
                              label_passes, pass_summary, set_piece_counts, to_metres)
-from passmodel.evaluate import fold_metrics
+from passmodel.evaluate import (ablation_table, bootstrap_ci, calibration_table, fold_metrics, shap_importance,
+                                shap_values)
 from passmodel.features import build_features, read_pass_frames, target_agreement
 from passmodel.load import MATCH_IDS, load_events, load_tracking_long, read_frames, tracking_path, write_tracking
-from passmodel.models import MODELS, inner_cv_sensitivity, run_lomo
+from passmodel.models import MODELS, ablation, inner_cv_sensitivity, run_lomo
 from passmodel import profiling
 from passmodel.profiling import BENCHMARK_CSV, process_peak_mb
-from passmodel.viz import plot_sanity_passes
+from passmodel.viz import plot_calibration, plot_sanity_passes, plot_shap_summary
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "results"
 PASSES_PATH = ROOT / "data" / "processed" / "passes.parquet"
 FEATURES_PATH = ROOT / "data" / "processed" / "features.parquet"
+FIGURES = RESULTS / "figures"
+HEADLINE = "xgboost (all features)"
 log = logging.getLogger("pipeline")
 
 
@@ -101,6 +108,28 @@ def build_pass_table(labelled: pd.DataFrame) -> pd.DataFrame:
         table.to_csv(RESULTS / f"{name}.csv")
         log.info(f"\n{name}\n{table.to_string()}")
     return passes
+
+
+def save(table: pd.DataFrame, name: str, index: bool = False) -> None:
+    """Write a results table to results/<name>.csv and echo it to the log."""
+    table.to_csv(RESULTS / f"{name}.csv", index=index)
+    log.info(f"\n{name}\n{table.to_string(index=index)}")
+
+
+def run_evaluation(features: pd.DataFrame, predictions: pd.DataFrame) -> None:
+    """PLAN step 5: everything is computed on held-out (test-match) predictions only."""
+    main_models = predictions[predictions["model"].isin(MODELS)]
+    save(bootstrap_ci(main_models, baseline="logistic (pass length)"), "step5_bootstrap_ci")
+    calibration = calibration_table(predictions, HEADLINE)
+    save(calibration, "step5_calibration")
+    plt.close(plot_calibration(calibration, path=FIGURES / "calibration.png"))
+    values, X = shap_values(features)
+    save(shap_importance(values), "step5_shap_importance", index=True)
+    plt.close(plot_shap_summary(values, X, path=FIGURES / "shap_summary.png"))
+    ablated = pd.concat([ablation(features), predictions[predictions["model"] == HEADLINE]], ignore_index=True)
+    save(ablation_table(ablated, full_model=HEADLINE), "step5_ablation", index=True)
+    ci = bootstrap_ci(ablated, baseline=HEADLINE)
+    save(ci[(ci["metric"] == "delta_log_loss") & (ci["model"] != HEADLINE)], "step5_ablation_ci")
 
 
 def main() -> None:

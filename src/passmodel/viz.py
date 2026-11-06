@@ -56,3 +56,42 @@ def plot_sanity_passes(passes, read_frames, n=3, seed=0, path=None):
     if path:
         fig.savefig(path, dpi=120)
     return fig
+
+
+def plot_calibration(table, path=None, title=None):
+    """Reliability curve from evaluate.calibration_table: predicted vs observed completion, with bin counts.
+
+    Points on the dashed diagonal = honest probabilities. Each point is one equal-count bin of held-out passes.
+    """
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.plot([0, 1], [0, 1], linestyle="--", color="#999999", linewidth=1, label="perfectly calibrated")
+    ax.plot(table["mean_predicted"], table["observed_rate"], marker="o", markersize=8, linewidth=2,
+            color=ATTACK_COLOUR, label="model (held-out matches)")
+    for _, r in table.iterrows():
+        ax.annotate(f"n={int(r['n'])}", (r["mean_predicted"], r["observed_rate"]), textcoords="offset points",
+                    xytext=(6, -12), fontsize=8, color="#555555")
+    lo = min(table["mean_predicted"].min(), table["observed_rate"].min()) - 0.05
+    ax.set(xlim=(lo, 1), ylim=(lo, 1), xlabel="predicted chance of completion",
+           ylabel="share of passes actually completed")
+    ax.set_title(title or "When the model says X%, do X% of passes come off?", fontsize=11)
+    ax.grid(alpha=0.3)
+    ax.legend(loc="upper left", frameon=False)
+    fig.tight_layout()
+    if path:
+        fig.savefig(path, dpi=120)
+    return fig
+
+
+def plot_shap_summary(values, X, path=None, max_display=12):
+    """SHAP beeswarm: one dot per held-out pass per feature; right = raises completion chance (log-odds)."""
+    import shap  # imported here: slow import, only needed for this plot
+
+    plt.figure()  # summary_plot draws on the current figure; start a clean one
+    shap.summary_plot(values.to_numpy(), X, max_display=max_display, show=False, plot_size=(8, 6))
+    fig = plt.gcf()
+    fig.axes[0].set_xlabel("SHAP value (log-odds): right = more likely to complete")
+    fig.axes[0].set_title("What drives the model's completion probability (held-out passes)", fontsize=11)
+    fig.tight_layout()
+    if path:
+        fig.savefig(path, dpi=120)
+    return fig
