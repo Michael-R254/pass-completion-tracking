@@ -189,6 +189,10 @@ def main() -> None:
     metrics = fold_metrics(predictions)
     metrics.to_csv(RESULTS / "metrics_per_fold.csv", index=False)
     log.info(f"\nmetrics_per_fold\n{metrics.to_string(index=False)}")
+    run_evaluation(features, predictions)
+    run_football(features, predictions, passes)
+    # Always from the committed benchmarks.csv: only a --rebuild run times every stage in one go.
+    save(season_projection(BENCHMARK_CSV, RESULTS / "tracking_files.csv"), "step7_scaling", index=True)
     log.info(f"done. process peak memory {process_peak_mb():.0f} MB")
 
 
