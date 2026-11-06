@@ -13,6 +13,9 @@ Built up step by step. Currently (PLAN step 1):
   6. evaluation (PLAN step 5): bootstrap CIs, calibration, SHAP, feature-group ablation
      -> results/step5_bootstrap_ci.csv, step5_calibration.csv, step5_shap_importance.csv,
         step5_ablation.csv, step5_ablation_ci.csv, figures/calibration.png, figures/shap_summary.png
+  7. football (PLAN step 6): surprising passes, player completion above expected, annotated pitch plot
+     -> results/step6_riskiest_completed.csv, step6_safest_failed.csv, step6_completion_above_expected.csv,
+        figures/pass_stories.png
 
 Every run logs to results/logs/pipeline_<time>.log (git-ignored). On a crash the full
 traceback and the process's peak memory go into that log before the error is re-raised.
@@ -34,14 +37,14 @@ import pandas as pd
 
 from passmodel.clean import (build_passes, clean_tracking, drop_bad_passes, home_attack_sign, label_counts,
                              label_passes, pass_summary, set_piece_counts, to_metres)
-from passmodel.evaluate import (ablation_table, bootstrap_ci, calibration_table, fold_metrics, shap_importance,
-                                shap_values)
+from passmodel.evaluate import (ablation_table, bootstrap_ci, calibration_table, completion_above_expected,
+                                fold_metrics, held_out_passes, shap_importance, shap_values, surprising_passes)
 from passmodel.features import build_features, read_pass_frames, target_agreement
 from passmodel.load import MATCH_IDS, load_events, load_tracking_long, read_frames, tracking_path, write_tracking
 from passmodel.models import MODELS, ablation, inner_cv_sensitivity, run_lomo
 from passmodel import profiling
 from passmodel.profiling import BENCHMARK_CSV, process_peak_mb
-from passmodel.viz import plot_calibration, plot_sanity_passes, plot_shap_summary
+from passmodel.viz import pass_story_title, plot_calibration, plot_passes, plot_sanity_passes, plot_shap_summary
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "results"
@@ -130,6 +133,25 @@ def run_evaluation(features: pd.DataFrame, predictions: pd.DataFrame) -> None:
     save(ablation_table(ablated, full_model=HEADLINE), "step5_ablation", index=True)
     ci = bootstrap_ci(ablated, baseline=HEADLINE)
     save(ci[(ci["metric"] == "delta_log_loss") & (ci["model"] != HEADLINE)], "step5_ablation_ci")
+
+
+def run_football(features: pd.DataFrame, predictions: pd.DataFrame, passes: pd.DataFrame) -> None:
+    """PLAN step 6: the model's surprises as tables and pitch plots, from held-out predictions only."""
+    held_out = held_out_passes(predictions, features, HEADLINE)
+    risky, safe = surprising_passes(held_out)
+    save(risky, "step6_riskiest_completed")
+    save(safe, "step6_safest_failed")
+    save(completion_above_expected(held_out), "step6_completion_above_expected", index=True)
+    # Two pitch plots: the riskiest completed pass in the opponents' half whose intended target was the
+    # actual receiver (so the drawn target is believable), and the single safest failure (failures have no
+    # receiver, so no such filter is possible there).
+    ok = held_out["completed"] & (held_out["target_player"] == held_out["receiver"]) & (held_out["start_x"] > 0)
+    stories = pd.concat([held_out[ok].nsmallest(1, "p_complete"), safe.head(1)])
+    rows = stories[["match_id", "event_id", "p_complete", "approx_minute", "target_player"]].merge(
+        passes, on=["match_id", "event_id"]).merge(
+        held_out[["match_id", "event_id", "target_x", "target_y"]], on=["match_id", "event_id"])
+    titles = [pass_story_title(r) for _, r in rows.iterrows()]
+    plt.close(plot_passes(rows, read_frames, titles=titles, path=FIGURES / "pass_stories.png"))
 
 
 def main() -> None:

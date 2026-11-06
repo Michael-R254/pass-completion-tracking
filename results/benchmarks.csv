@@ -21,3 +21,6 @@ timestamp,stage,match_id,wall_s,peak_mb,process_peak_mb,rows_in,rows_out
 2026-11-05T15:18:47,read tracking at pass frames,2,0.025,0.1,6976.1,1176,27025
 2026-11-05T15:18:47,read tracking at pass frames,3,0.028,0.2,6976.1,1406,32338
 2026-11-05T15:18:48,build features (all folds),,0.661,21.3,6976.1,87121,10893
+2026-11-06T14:04:39,read tracking at pass frames,1,0.008,0.0,267.1,,23
+2026-11-06T14:05:00,read tracking at pass frames,3,0.008,0.0,265.5,,23
+2026-11-06T14:05:00,read tracking at pass frames,1,0.007,0.0,274.6,,23

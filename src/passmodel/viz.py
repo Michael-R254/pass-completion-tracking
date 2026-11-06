@@ -14,10 +14,12 @@ ATTACK_COLOUR, DEFEND_COLOUR, BALL_COLOUR = "#1f5fbf", "#d62728", "black"
 def plot_pass_frame(pass_row, frame, ax=None, title=None):
     """Draw one pass at its start frame: all players, velocity arrows (1 s ahead), ball, event start->end.
 
-    pass_row: one row of passes.parquet (passing team attacks +x, left to right).
+    pass_row: one row of passes.parquet (passing team attacks +x, left to right). If it also has
+              target_x / target_y (from features.parquet), the intended target (D3) is ringed and the
+              passer->target line the model scored is drawn solid.
     frame:    tracking rows for pass_row.start_frame (metres, home attacks +x); rotated here by attack_sign.
-    The arrow from the event start to the event end is drawn for sanity checks only; it is
-    outcome-dependent and never a model input.
+    The dashed arrow from the event start to the event end is where the ball actually went; it is
+    outcome-dependent, shown for context only, and never a model input.
     """
     pitch = Pitch(pitch_type="skillcorner", pitch_length=105, pitch_width=68, line_color="#888888")
     if ax is None:
@@ -39,23 +41,41 @@ def plot_pass_frame(pass_row, frame, ax=None, title=None):
     pitch.scatter(ball["x"] * s, ball["y"] * s, ax=ax, s=40, color=BALL_COLOUR, zorder=5)
     pitch.arrows(pass_row["start_x"], pass_row["start_y"], pass_row["end_x"], pass_row["end_y"], ax=ax,
                  color="#444444", width=1.5, linestyle="--", zorder=1)
+    if "target_x" in pass_row:
+        start, target = (pass_row["start_x"], pass_row["start_y"]), (pass_row["target_x"], pass_row["target_y"])
+        pitch.lines(*start, *target, ax=ax, color=ATTACK_COLOUR, lw=3, alpha=0.6, zorder=1)
+        pitch.scatter(*target, ax=ax, s=420, facecolors="none", edgecolors=ATTACK_COLOUR, linewidths=3, zorder=4)
+        pitch.annotate("intended target", (target[0], target[1] + 3), ax=ax, ha="center", fontsize=8,
+                       color=ATTACK_COLOUR, zorder=6)
     outcome = "completed" if pass_row["completed"] else "failed"
     ax.set_title(title or f"Game {pass_row['match_id']}, frame {pass_row['start_frame']}: {pass_row['passer']} "
                           f"pass, {outcome}. Blue attack left to right", fontsize=10)
     return ax
 
 
-def plot_sanity_passes(passes, read_frames, n=3, seed=0, path=None):
-    """Plot n random passes side by side to eyeball that event frames and tracking line up."""
-    sample = passes.sample(n, random_state=seed)
-    fig, axes = plt.subplots(1, n, figsize=(7 * n, 5.5))
-    for ax, (_, row) in zip(np.atleast_1d(axes), sample.iterrows()):
-        frame = read_frames(row["match_id"], [row["start_frame"]])
-        plot_pass_frame(row, frame, ax=ax)
+def plot_passes(rows, read_frames, titles=None, path=None):
+    """Plot the passes in `rows` side by side, one pitch each, reading only their start frames."""
+    titles = titles or [None] * len(rows)
+    fig, axes = plt.subplots(1, len(rows), figsize=(7 * len(rows), 5.5))
+    for ax, (_, row), title in zip(np.atleast_1d(axes), rows.iterrows(), titles):
+        plot_pass_frame(row, read_frames(row["match_id"], [row["start_frame"]]), ax=ax, title=title)
     fig.tight_layout()
     if path:
         fig.savefig(path, dpi=120)
     return fig
+
+
+def plot_sanity_passes(passes, read_frames, n=3, seed=0, path=None):
+    """Plot n random passes side by side to eyeball that event frames and tracking line up."""
+    return plot_passes(passes.sample(n, random_state=seed), read_frames, path=path)
+
+
+def pass_story_title(row) -> str:
+    """Coach-readable title: who passed, when, what the model said, what happened."""
+    outcome = "came off" if row["completed"] else "was lost"
+    return (f"Game {row['match_id']}, ~{row['approx_minute']:.0f}': {row['passer']} to {row['target_player']} "
+            f"(model's intended target)\nModel: {row['p_complete']:.0%} chance of completion. It {outcome}. "
+            f"Blue attacks left to right; arrows = 1 s of running")
 
 
 def plot_calibration(table, path=None, title=None):

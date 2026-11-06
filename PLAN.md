@@ -71,9 +71,9 @@ These are the four places where a quick version of this project would give misle
 - [x] Ablation: does each feature group (geometry / pressure / lane / speed) earn its place?
 
 ### 6. Show it as football (Sun afternoon, ~2 hrs)
-- [ ] mplsoccer plot of one real pass: all players, velocity arrows, pass line, intended target highlighted, predicted probability in the title
-- [ ] Table of the 10 riskiest completed passes (lowest predicted probability that came off) and the 10 "safest" failures
-- [ ] Optional: per-player "completion above expected" with an explicit caveat about sample size
+- [x] mplsoccer plot of one real pass: all players, velocity arrows, pass line, intended target highlighted, predicted probability in the title
+- [x] Table of the 10 riskiest completed passes (lowest predicted probability that came off) and the 10 "safest" failures
+- [x] Optional: per-player "completion above expected" with an explicit caveat about sample size
 
 ### 7. README and polish (Sun evening, ~1.5 hrs)
 - [ ] Sections: question, data and source acknowledgement, label definition, split, results table, pitch plot, calibration plot, SHAP, **scaling**, limitations, how to reproduce

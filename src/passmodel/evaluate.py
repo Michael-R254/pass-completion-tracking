@@ -133,3 +133,51 @@ def ablation_table(predictions: pd.DataFrame, full_model: str) -> pd.DataFrame:
     return delta.add_prefix("delta_log_loss_fold_").assign(
         folds_worse_without=lambda d: (d.filter(like="fold_").drop(columns="delta_log_loss_fold_mean") > 0).sum(axis=1)
     ).sort_values("delta_log_loss_fold_mean", ascending=False).round(4)
+
+
+# ---------------------------------------------------------------- step 6: passes as football
+
+FRAMES_PER_MINUTE = 25 * 60
+
+
+def held_out_passes(predictions: pd.DataFrame, features: pd.DataFrame, model: str) -> pd.DataFrame:
+    """One row per open-play pass with its held-out prediction and the features of the fold that predicted it.
+
+    features has one row per (fold, pass); we keep fold == match_id, i.e. the intended target and features
+    as the model saw them when that match was the test match.
+    """
+    test_rows = features[features["fold"] == features["match_id"]].drop(columns="completed")
+    p = predictions[predictions["model"] == model][["match_id", "event_id", "completed", "p_complete"]]
+    out = p.merge(test_rows, on=["match_id", "event_id"], validate="one_to_one")
+    # Frames run continuously from kick-off at 25 Hz, so this is minutes of play, not the match clock.
+    return out.assign(approx_minute=out["start_frame"] / FRAMES_PER_MINUTE)
+
+
+SURPRISE_COLUMNS = ["match_id", "period", "approx_minute", "passer", "target_player", "receiver", "p_complete",
+                    "pass_length", "target_nearest_opp", "passer_nearest_opp", "lane_opps", "start_x", "event_id"]
+
+
+def surprising_passes(held_out: pd.DataFrame, n: int = 10) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """(riskiest completed passes, safest failed passes): where the outcome most surprised the model.
+
+    Riskiest completed = lowest predicted chance among passes that came off; safest failures = highest
+    predicted chance among passes that were lost. These are the clips an analyst would pull first.
+    """
+    risky = held_out[held_out["completed"]].nsmallest(n, "p_complete")[SURPRISE_COLUMNS]
+    safe = held_out[~held_out["completed"]].nlargest(n, "p_complete")[SURPRISE_COLUMNS]
+    return risky.round(3).reset_index(drop=True), safe.round(3).reset_index(drop=True)
+
+
+def completion_above_expected(held_out: pd.DataFrame, min_passes: int = 40) -> pd.DataFrame:
+    """Per player and match: completion rate minus the model's expected rate, for players with >= min_passes.
+
+    se = binomial standard error of the difference if the model's probabilities were exactly right,
+    sqrt(sum p(1-p)) / n. A player is only notable if |above_expected| is well beyond ~2 se.
+    Per match, because Metrica's anonymised player IDs are not guaranteed to mean the same person across games.
+    """
+    g = held_out.assign(var=held_out["p_complete"] * (1 - held_out["p_complete"])).groupby(["match_id", "passer"])
+    t = g.agg(passes=("completed", "size"), completion=("completed", "mean"), expected=("p_complete", "mean"),
+              var=("var", "sum"))
+    t = t[t["passes"] >= min_passes]
+    t = t.assign(above_expected=t["completion"] - t["expected"], se=np.sqrt(t["var"]) / t["passes"]).drop(columns="var")
+    return t.sort_values("above_expected", ascending=False).round(3)
